@@ -8,6 +8,16 @@ UniversalSpeech aims to streamline and simplify access to speech within applicat
 
 UniversalSpeech is built upon the UniversalSpeech DLL, initially developed by [qtnc](https://github.com/qtnc). To learn more about the project and its details, you can visit the [UniversalSpeech GitHub repository](https://github.com/qtnc/UniversalSpeech).
 
+## Supported engines:
+
+- Jaws for windows.
+- NVDA 2011.1 or above.
+- Windows eye.
+- System access.
+- Supernova.
+- Cobra, partially.
+- SAPI 5.
+
 ## Installation:
 
 To install the UniversalSpeech library, you can use the following pip command:
