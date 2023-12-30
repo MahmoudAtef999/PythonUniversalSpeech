@@ -2,11 +2,11 @@
 
 ## Overview:
 
-The UniversalSpeech library is a Python interface for interacting with the UniversalSpeech DLL, providing convenient functionality for speech synthesis and braille display. This library is compatible with both 32-bit and 64-bit versions of Python.
+The PythonUniversalSpeech library is a Python interface for interacting with the UniversalSpeech DLL, providing convenient functionality for speech synthesis and braille display. This library is compatible with both 32-bit and 64-bit versions of Python.
 
 UniversalSpeech aims to streamline and simplify access to speech within applications. It accomplishes this by providing a unified interface that allows speech to be achieved through various means, including active screen readers, direct synthesis, or native/OS speech engines. The library dynamically adapts based on what is available and supported, offering a cohesive and versatile solution for speech-related functionalities.
 
-UniversalSpeech is built upon the UniversalSpeech DLL, initially developed by [qtnc](https://github.com/qtnc). To learn more about the project and its details, you can visit the [UniversalSpeech GitHub repository](https://github.com/qtnc/UniversalSpeech).
+PythonUniversalSpeech is built upon the UniversalSpeech, initially developed by [qtnc](https://github.com/qtnc). To learn more about the project and its details, you can visit the [UniversalSpeech GitHub repository](https://github.com/qtnc/UniversalSpeech).
 
 ## Supported engines:
 
@@ -17,6 +17,7 @@ UniversalSpeech is built upon the UniversalSpeech DLL, initially developed by [q
 - Supernova.
 - Cobra, partially.
 - SAPI 5.
+- ZDSRAPI
 
 ## Installation:
 
@@ -64,6 +65,7 @@ The `UniversalSpeech` class provides a simplified interface for workingwith the 
 
 - `get_value(what) -> int`: 
   - Gets the current value of a specific speech parameter.
+  - Note: You can see the available parameters by looking at the beginning of [this file](https://github.com/MahmoudAtef999/PythonUniversalSpeech/blob/main/UniversalSpeech/__init__.py).
 
 - `set_value(what, value) -> None`: 
   - Sets the value of a specific speech parameter.
