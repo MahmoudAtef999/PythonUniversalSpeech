@@ -11,7 +11,7 @@ from .exceptions import UnsupportedError
 VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED, \
 RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED, \
 PITCH, PITCH_MAX, PITCH_MIN, PITCH_SUPPORTED, \
-INFLEXION, INFLEXION_MAX, INFLEXION_MIN, INFLEXION_SUPPORTED, \
+INFLECTION, INFLECTION_MAX, INFLECTION_MIN, INFLECTION_SUPPORTED, \
 PAUSED, PAUSE_SUPPORTED, \
 BUSY, BUSY_SUPPORTED, \
 WAIT, WAIT_SUPPORTED \
@@ -129,8 +129,8 @@ that are generally reliable and can be used when no other engines are available.
         return self.get_value(PITCH_SUPPORTED) != 0
 
     @property
-    def inflexion_supported(self) -> bool:
-        return self.get_value(INFLEXION_SUPPORTED) != 0
+    def inflection_supported(self) -> bool:
+        return self.get_value(INFLECTION_SUPPORTED) != 0
 
     def set_rate(self, value: int, min_rate: int = None, max_rate: int = None) -> None:
         """
@@ -204,26 +204,26 @@ that are generally reliable and can be used when no other engines are available.
         if max_pitch is not None:
             self.set_value(PITCH_MAX, max_pitch)
 
-    def set_inflexion(self, value: int, min_inflexion: int = None, max_inflexion: int = None) -> None:
+    def set_inflection(self, value: int, min_inflection: int = None, max_inflection: int = None) -> None:
         """
-        Set the speech inflexion and, optionally, the minimum and maximum inflexion.
+        Set the speech inflection and, optionally, the minimum and maximum inflection.
 
         Parameters:
-        - value (int): The desired speech inflexion.
-        - min_inflexion (int): The minimum allowed speech inflexion (optional).
-        - max_inflexion (int): The maximum allowed speech inflexion (optional).
+        - value (int): The desired speech inflection.
+        - min_inflection (int): The minimum allowed speech inflection (optional).
+        - max_inflection (int): The maximum allowed speech inflection (optional).
 
         Raises:
         - UnsupportedError: If the function is not supported with the current engine.
         """
         
-        if not self.inflexion_supported:
-            raise UnsupportedError("Set inflexion is not supported with the current engine.")
+        if not self.inflection_supported:
+            raise UnsupportedError("Set inflection is not supported with the current engine.")
         
-        self.set_value(INFLEXION, value)
+        self.set_value(INFLECTION, value)
 
-        if min_inflexion is not None:
-            self.set_value(INFLEXION_MIN, min_inflexion)
+        if min_inflection is not None:
+            self.set_value(INFLECTION_MIN, min_inflection)
 
-        if max_inflexion is not None:
-            self.set_value(INFLEXION_MAX, max_inflexion)
+        if max_inflection is not None:
+            self.set_value(INFLECTION_MAX, max_inflection)
