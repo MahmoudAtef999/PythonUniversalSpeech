@@ -41,7 +41,7 @@ The `UniversalSpeech` class provides a simplified interface for workingwith the 
 - `rate_supported` (bool): Indicates whether setting the speech rate is supported in the current engine.
 - `volume_supported` (bool): Indicates whether setting the speech volume is supported in the current engine.
 - `pitch_supported` (bool): Indicates whether setting the speech pitch is supported in the current engine.
-- `inflexion_supported` (bool): Indicates whether setting the speech inflexion is supported in the current engine.
+- `inflection_supported` (bool): Indicates whether setting the speech inflection is supported in the current engine.
 
 ### Methods:
 
@@ -89,8 +89,8 @@ The `UniversalSpeech` class provides a simplified interface for workingwith the 
 - `set_pitch(value: int, min_pitch: int = None, max_pitch: int = None) -> None`: 
   - Sets the speech pitch and, optionally, the minimum and maximum pitch.
 
-- `set_inflexion(value: int, min_inflexion: int = None, max_inflexion: int = None) -> None`: 
-  - Sets the speech inflexion and, optionally, the minimum and maximum inflexion.
+- `set_inflection(value: int, min_inflection: int = None, max_inflection: int = None) -> None`: 
+  - Sets the speech inflection and, optionally, the minimum and maximum inflection.
 
 ## Exceptions:
 
