@@ -80,6 +80,10 @@ The `UniversalSpeech` class provides a simplified interface for workingwith the 
 - `get_engines() -> Dict[str, Dict]`: 
   - Gets a dictionary of available speech engines with their names, availability, and IDs.
 
+- `set_engine(engine: str) -> None`:
+  - Sets the speech synthesis engine to the specified one.
+  - `engine` (str): The name of the speech synthesis engine to set.
+
 - `set_rate(value: int, min_rate: int = None, max_rate: int = None) -> None`: 
   - Sets the speech rate and, optionally, the minimum and maximum rates.
 
