@@ -98,20 +98,20 @@ that are generally reliable and can be used when no other engines are available.
         engine_id = self.get_value(ENGINE)
         return self.get_string(ENGINE + engine_id)
 
-    def get_engines(self) -> list:
-        """Get a list of available speech engines with their names, availability, and IDs."""
-        engines = []
+    def get_engines(self) -> dict:
+        """Get a Dictionary of available speech engines with their names, availability, and IDs."""
+        engines = {}
         i = 0
         while True:
             name = self.get_string(ENGINE + i)
             if not  name:
                 break
             avail = self.get_value(ENGINE_AVAILABLE + i) != 0
-            engines.append({
+            engines[name] = {
                 "name": name,
                 "available": avail,
-                "Id": i
-            })
+                "id": i
+            }
             i += 1
 
         return engines
