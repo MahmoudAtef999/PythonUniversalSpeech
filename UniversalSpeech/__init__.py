@@ -4,6 +4,7 @@ This library works with python 32 and 64 bit.
 This module encapsulates the underlying functionality and exposes a simplified interface for working with the UniversalSpeech API.
 """
 import ctypes
+from typing import AnyStr
 from .load import Loader
 from .exceptions import UnsupportedError
 
@@ -97,6 +98,25 @@ that are generally reliable and can be used when no other engines are available.
         """Get the name of the currently used speech engine."""
         engine_id = self.get_value(ENGINE)
         return self.get_string(ENGINE + engine_id)
+
+    def set_engine(self, engine:str) -> None :  
+        """
+        Set the speech synthesis engine.
+
+        Parameters:
+        - engine (str): The name of the speech synthesis engine to set.
+
+        Raises:
+    - UnsupportedError: If the specified engine is not supported. 
+      Use self.get_engines() to get a dictionary of supported engines.
+    """
+        
+        assert isinstance(engine, str), "Engine must be a string."
+        engines = self.get_engines()
+        if engine not in engines:
+            raise UnsupportedError(f"{engine} is not supported. Use self.get_engines() to know the supported engines.")
+        
+        self.set_value(engine, engines[engine]["id"])
 
     def get_engines(self) -> dict:
         """Get a Dictionary of available speech engines with their names, availability, and IDs."""
