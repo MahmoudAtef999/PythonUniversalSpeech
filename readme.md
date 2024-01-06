@@ -77,8 +77,8 @@ The `UniversalSpeech` class provides a simplified interface for workingwith the 
   - Determines whether to use native speech engines, such as SAPI on Windows, that are generally reliable and can be used when no other engines are available. 
   - If enabled is set to True, native speech engines are used; if set to False, speech is ignored in such cases.
 
-- `get_engines() -> List[Dict]`: 
-  - Gets a list of available speech engines with their names, availability, and IDs.
+- `get_engines() -> Dict[str, Dict]`: 
+  - Gets a dictionary of available speech engines with their names, availability, and IDs.
 
 - `set_rate(value: int, min_rate: int = None, max_rate: int = None) -> None`: 
   - Sets the speech rate and, optionally, the minimum and maximum rates.
