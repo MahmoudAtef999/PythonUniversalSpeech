@@ -44,6 +44,11 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         self.speech.say_a("A", interrupt=True)
         self.speech.stop()
 
+    def test_speech_sayA_alias(self):
+        # Test backward-compatible sayA alias
+        self.speech.sayA("A", interrupt=True)
+        self.speech.stop()
+
     def test_braille(self):
         self.speech.braille("Test braille")
 
@@ -51,13 +56,10 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         self.speech.speech("Test combined speech and braille")
         self.speech.stop()
 
-    def test_speech_a_known_bug_handling(self):
-        # Note: In baseline code, speech_a has a known bug calling self.sayA instead of self.say_a
-        # This test ensures we handle either baseline AttributeError or fixed behavior
-        try:
-            self.speech.speech_a("Test speech_a")
-        except AttributeError:
-            pass  # Expected in baseline before Stage 4 fix
+    def test_speech_a_method(self):
+        # speech_a should execute say_a and braille without AttributeError
+        self.speech.speech_a("Test speech_a")
+        self.speech.stop()
 
     def test_get_and_set_value(self):
         # Read a known parameter
@@ -112,9 +114,19 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             with self.assertRaises(UnsupportedError):
                 self.speech.set_inflection(50)
 
+    def test_set_engine_valid(self):
+        engines = self.speech.get_engines()
+        if "SAPI5" in engines:
+            self.speech.set_engine("SAPI5")
+            self.assertEqual(self.speech.engine_used, "SAPI5")
+
     def test_set_engine_unsupported(self):
         with self.assertRaises(UnsupportedError):
             self.speech.set_engine("NonExistentEngineX")
+
+    def test_set_engine_invalid_type(self):
+        with self.assertRaises(TypeError):
+            self.speech.set_engine(123)  # type: ignore
 
 
 if __name__ == "__main__":

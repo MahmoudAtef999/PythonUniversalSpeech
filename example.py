@@ -16,7 +16,7 @@ uspeech.braille("Hello, world.")
 engine_used = uspeech.engine_used
 print("You are using {}.".format(engine_used))
 
-# Get list of available engins
+# Get list of available engines
 available_engines = uspeech.get_engines()
 print(available_engines)
 
