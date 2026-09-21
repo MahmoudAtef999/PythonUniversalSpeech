@@ -49,6 +49,10 @@ class TestConstants(unittest.TestCase):
         self.assertTrue(issubclass(DLLFileNotFoundError, Exception))
         self.assertTrue(issubclass(UnsupportedError, Exception))
 
+    def test_version_defined(self):
+        self.assertTrue(hasattr(UniversalSpeech, "__version__"))
+        self.assertEqual(UniversalSpeech.__version__, "1.0.2.1")
+
 
 if __name__ == "__main__":
     unittest.main()

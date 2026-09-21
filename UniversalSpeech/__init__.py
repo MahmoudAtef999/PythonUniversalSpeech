@@ -8,6 +8,8 @@ from typing import Optional, Dict, Any, Union
 from .load import Loader
 from .exceptions import UnsupportedError
 
+__version__ = "1.0.2.1"
+
 # Identifiers for parameters
 VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED, \
 RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED, \

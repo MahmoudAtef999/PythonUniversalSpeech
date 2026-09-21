@@ -1,0 +1,7 @@
+include readme.md
+recursive-include UniversalSpeech/lib *.dll *.tlb
+recursive-include UniversalSpeech/lib64 *.dll *.tlb
+global-exclude ZDSRAPI.dll
+global-exclude *.py[cod]
+global-exclude __pycache__
+prune tests

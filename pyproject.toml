@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "UniversalSpeech"
+version = "1.0.2.1"
+description = "UniversalSpeech simplifies speech access in applications through a unified interface, supporting diverse methods such as screen readers, direct synthesis, and native/OS speech engines."
+readme = "readme.md"
+authors = [
+    { name = "Mahmoud Atef", email = "mahmoud.atef.987123@gmail.com" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Adaptive Technologies",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+keywords = ["speech", "accessibility", "screen reader", "jaws", "nvda"]
+requires-python = ">=3.7"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/MahmoudAtef999/PythonUniversalSpeech"
+Repository = "https://github.com/MahmoudAtef999/PythonUniversalSpeech.git"
+Issues = "https://github.com/MahmoudAtef999/PythonUniversalSpeech/issues"
+
+[tool.setuptools.packages.find]
+include = ["UniversalSpeech*"]
+exclude = ["tests*", "dist*", "build*"]
+
+[tool.setuptools.package-data]
+UniversalSpeech = ["lib/*", "lib64/*"]
