@@ -17,7 +17,6 @@ PythonUniversalSpeech is built upon the UniversalSpeech, initially developed by 
 - Supernova.
 - Cobra, partially.
 - SAPI 5.
-- ZDSRAPI
 
 ## Installation:
 
