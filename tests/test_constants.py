@@ -51,7 +51,7 @@ class TestConstants(unittest.TestCase):
 
     def test_version_defined(self):
         self.assertTrue(hasattr(UniversalSpeech, "__version__"))
-        self.assertEqual(UniversalSpeech.__version__, "1.0.2.1")
+        self.assertEqual(UniversalSpeech.__version__, "2.0.0")
 
 
 if __name__ == "__main__":

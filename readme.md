@@ -124,7 +124,7 @@ uspeech.braille("Hello, world.")
 engine_used = uspeech.engine_used
 print("You are using {}.".format(engine_used))
 
-# Get list of available engins
+# Get list of available engines
 available_engines = uspeech.get_engines()
 print(available_engines)
 
@@ -134,3 +134,7 @@ try:
 except UniversalSpeech.exceptions.UnsupportedError as e:
     print(e)
 ```
+
+## Contributing
+
+For information on running tests, building distributions, and the automated PyPI release process, please see [CONTRIBUTING.md](CONTRIBUTING.md).
