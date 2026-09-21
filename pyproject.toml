@@ -10,6 +10,7 @@ readme = "readme.md"
 authors = [
     { name = "Mahmoud Atef", email = "mahmoud.atef.987123@gmail.com" }
 ]
+license = "GPL-3.0-or-later"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
