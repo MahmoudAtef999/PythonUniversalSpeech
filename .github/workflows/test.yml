@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 'refactor/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install build and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest build
+
+      - name: Run tests (unittest)
+        run: |
+          $env:PYTHONPATH = "."
+          python -m unittest discover -s tests -t . -v
+
+      - name: Run tests (pytest)
+        run: |
+          $env:PYTHONPATH = "."
+          pytest tests -v
+
+      - name: Build package (sdist and wheel)
+        run: |
+          python -m build
+
+      - name: Test installed wheel package
+        run: |
+          $whl = (Get-Item dist/*.whl).FullName
+          python -m pip install $whl
+          python -c "import UniversalSpeech; print('Installed UniversalSpeech version:', UniversalSpeech.__version__)"
