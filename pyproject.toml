@@ -34,4 +34,8 @@ include = ["UniversalSpeech*"]
 exclude = ["tests*", "dist*", "build*"]
 
 [tool.setuptools.package-data]
-UniversalSpeech = ["lib/*", "lib64/*"]
+UniversalSpeech = ["lib/*", "lib64/*", "py.typed"]
+
+[tool.pytest.ini_options]
+addopts = "-p no:faulthandler"
+

@@ -12,9 +12,13 @@ from .constants import (
     RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED,
     PITCH, PITCH_MAX, PITCH_MIN, PITCH_SUPPORTED,
     INFLECTION, INFLECTION_MAX, INFLECTION_MIN, INFLECTION_SUPPORTED,
+    PAUSED, PAUSE_SUPPORTED,
+    BUSY, BUSY_SUPPORTED,
+    WAIT, WAIT_SUPPORTED,
     ENABLE_NATIVE_SPEECH,
     VOICE,
     ENGINE, ENGINE_AVAILABLE,
+    AUTO_ENGINE,
 )
 
 
@@ -135,6 +139,102 @@ class UniversalSpeech:
             i += 1
 
         return engines
+
+    def reset_engine(self) -> None:
+        """Restore default automatic speech engine selection."""
+        self.set_value(ENGINE, -1)
+
+    def say_ssml(self, ssml: str) -> bool:
+        """
+        Speak text formatted with Speech Synthesis Markup Language (SSML).
+
+        Parameters:
+            ssml (str): SSML formatted markup text.
+
+        Returns:
+            bool: True if speech was queued/spoken, False otherwise.
+        """
+        if hasattr(self.__uspeech, "sapiSaySSMLW") and self.engine_used.upper().startswith("SAPI"):
+            return bool(self.__uspeech.sapiSaySSMLW(ssml))
+        return bool(self.say(ssml))
+
+    @property
+    def is_busy(self) -> bool:
+        """Check if speech synthesis is currently active / speaking."""
+        if self.get_value(BUSY_SUPPORTED) != 0:
+            return self.get_value(BUSY) != 0
+        if hasattr(self.__uspeech, "sapiIsSpeaking") and self.engine_used.upper().startswith("SAPI"):
+            return bool(self.__uspeech.sapiIsSpeaking())
+        return False
+
+    @property
+    def busy_supported(self) -> bool:
+        """Check if querying busy status is supported by the current engine."""
+        return self.get_value(BUSY_SUPPORTED) != 0 or (
+            hasattr(self.__uspeech, "sapiIsSpeaking") and self.engine_used.upper().startswith("SAPI")
+        )
+
+    @property
+    def is_paused(self) -> bool:
+        """Check if speech synthesis is currently paused."""
+        if self.get_value(PAUSE_SUPPORTED) != 0:
+            return self.get_value(PAUSED) != 0
+        if hasattr(self.__uspeech, "sapiIsPaused") and self.engine_used.upper().startswith("SAPI"):
+            return bool(self.__uspeech.sapiIsPaused())
+        return False
+
+    @property
+    def pause_supported(self) -> bool:
+        """Check if pausing speech is supported by the current engine."""
+        return self.get_value(PAUSE_SUPPORTED) != 0 or (
+            hasattr(self.__uspeech, "sapiSetPaused") and self.engine_used.upper().startswith("SAPI")
+        )
+
+    def pause(self, paused: bool = True) -> None:
+        """
+        Pause or unpause speech playback.
+
+        Parameters:
+            paused (bool): True to pause speech, False to unpause/resume.
+
+        Raises:
+            UnsupportedError: If pausing is not supported by the current engine.
+        """
+        if not self.pause_supported:
+            raise UnsupportedError("Pausing is not supported with the current engine.")
+        if self.get_value(PAUSE_SUPPORTED) != 0:
+            self.set_value(PAUSED, 1 if paused else 0)
+        elif hasattr(self.__uspeech, "sapiSetPaused"):
+            self.__uspeech.sapiSetPaused(1 if paused else 0)
+
+    def resume(self) -> None:
+        """Resume speech playback if currently paused."""
+        self.pause(False)
+
+    @property
+    def wait_supported(self) -> bool:
+        """Check if waiting for speech completion is supported by the current engine."""
+        return self.get_value(WAIT_SUPPORTED) != 0 or (
+            hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI")
+        )
+
+    def wait(self, timeout_ms: Optional[int] = None) -> bool:
+        """
+        Wait for speech playback to finish.
+
+        Parameters:
+            timeout_ms (Optional[int]): Maximum milliseconds to wait. If None, waits indefinitely.
+
+        Returns:
+            bool: True once finished or if supported.
+        """
+        if timeout_ms is not None:
+            return bool(self.set_value(WAIT, timeout_ms))
+        if self.get_value(WAIT_SUPPORTED) != 0:
+            return bool(self.get_value(WAIT))
+        if hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI"):
+            return bool(self.__uspeech.sapiWait())
+        return True
 
     @property
     def voice_supported(self) -> bool:

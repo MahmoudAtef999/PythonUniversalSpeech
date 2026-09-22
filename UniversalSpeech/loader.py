@@ -161,5 +161,26 @@ class Loader:
                 func.restype = ctypes.c_int
                 func.argtypes = []
 
+        # SAPI-specific playback functions
+        if hasattr(uspeech, "sapiWait"):
+            uspeech.sapiWait.restype = ctypes.c_int
+            uspeech.sapiWait.argtypes = []
+
+        if hasattr(uspeech, "sapiIsSpeaking"):
+            uspeech.sapiIsSpeaking.restype = ctypes.c_int
+            uspeech.sapiIsSpeaking.argtypes = []
+
+        if hasattr(uspeech, "sapiIsPaused"):
+            uspeech.sapiIsPaused.restype = ctypes.c_int
+            uspeech.sapiIsPaused.argtypes = []
+
+        if hasattr(uspeech, "sapiSetPaused"):
+            uspeech.sapiSetPaused.restype = ctypes.c_int
+            uspeech.sapiSetPaused.argtypes = [ctypes.c_int]
+
+        if hasattr(uspeech, "sapiSaySSMLW"):
+            uspeech.sapiSaySSMLW.restype = ctypes.c_int
+            uspeech.sapiSaySSMLW.argtypes = [ctypes.c_wchar_p]
+
 
 __all__ = ["Loader"]
