@@ -1,9 +1,12 @@
 """
-UniversalSpeech: Python bindings for the UniversalSpeech library.
+UniversalSpeech: Python bindings and high-level SDK for the UniversalSpeech library.
 
 This library provides a unified Python interface for speech synthesis and
 braille displays across multiple screen readers and native speech engines
 on Windows (32-bit and 64-bit).
+
+Based on the original UniversalSpeech C library created by Quentin Cosendey:
+https://github.com/qtnc/UniversalSpeech
 """
 
 from .constants import (

@@ -28,6 +28,7 @@ dependencies = []
 Homepage = "https://github.com/MahmoudAtef999/PythonUniversalSpeech"
 Repository = "https://github.com/MahmoudAtef999/PythonUniversalSpeech.git"
 Issues = "https://github.com/MahmoudAtef999/PythonUniversalSpeech/issues"
+"Upstream UniversalSpeech" = "https://github.com/qtnc/UniversalSpeech"
 
 [tool.setuptools.packages.find]
 include = ["UniversalSpeech*"]

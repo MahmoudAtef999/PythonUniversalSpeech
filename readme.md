@@ -95,6 +95,9 @@ with UniversalSpeech() as speech:
 - `window_eyes_is_available() -> bool`: True if Window-Eyes is running.
 - `cobra_is_available() -> bool`: True if Cobra is running.
 - `zoomtext_is_available() -> bool`: True if ZoomText is running.
+- `narrator_is_available() -> bool`: True if Windows Narrator is running.
+- `nvda_get_version() -> Optional[str]`: Returns NVDA version string if running (e.g. '2026.2'), else None.
+- `jfw_get_version() -> Optional[str]`: Returns JAWS version string if running (e.g. '2025.0'), else None.
 
 ## Command-Line Interface (CLI):
 
@@ -126,6 +129,16 @@ All exceptions inherit from `UniversalSpeechError`:
 - `UnsupportedError`: Raised when a feature is unsupported by the active engine.
 - `EngineError`: Raised when an invalid engine is requested.
 - `VoiceError`: Raised when an invalid voice is requested.
+
+## Credits & Attribution
+
+`PythonUniversalSpeech` is an enhanced Python SDK and wrapper built upon the original C library **UniversalSpeech**, created by **Quentin Cosendey (QuentinC)**.
+
+- **Original C Repository**: [qtnc/UniversalSpeech on GitHub](https://github.com/qtnc/UniversalSpeech)
+- **Official Website & Documentation**: [QuentinC's Web Corner (UniversalSpeech)](http://quentinc.net/universalspeech/)
+- **Original License**: [MIT License](https://github.com/qtnc/UniversalSpeech/blob/master/LICENSE.txt)
+
+We express our deep appreciation to **Quentin Cosendey** and contributors across the screen reader accessibility and audio game communities for establishing the foundational cross-screen-reader C architecture.
 
 ## Contributing
 
