@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any, Union, List
 from .loader import Loader
 from .exceptions import UnsupportedError, VoiceError
 from .voices import Voice
+from .screen_readers import ScreenReaderInfo
 from .constants import (
     VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED,
     RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED,
@@ -319,6 +320,121 @@ class UniversalSpeech:
 
         if max_inflection is not None:
             self.set_value(INFLECTION_MAX, max_inflection)
+
+    # -------------------------------------------------------------------------
+    # Screen Reader Information & Direct Checks
+    # -------------------------------------------------------------------------
+
+    @property
+    def current_screen_reader_name(self) -> str:
+        """Get the name of the currently active screen reader (e.g., 'NVDA', 'Jaws', 'SAPI5')."""
+        if hasattr(self.__uspeech, "getCurrentScreenReaderNameW"):
+            name = self.__uspeech.getCurrentScreenReaderNameW()
+            if name:
+                return name
+        return ""
+
+    @property
+    def current_screen_reader_id(self) -> int:
+        """Get the ID of the currently active screen reader."""
+        if hasattr(self.__uspeech, "getCurrentScreenReader"):
+            return self.__uspeech.getCurrentScreenReader()
+        return -1
+
+    def get_supported_screen_readers(self) -> List[str]:
+        """Get a list of all screen readers supported by UniversalSpeech.dll."""
+        readers: List[str] = []
+        if hasattr(self.__uspeech, "getSupportedScreenReadersCount") and hasattr(self.__uspeech, "getScreenReaderNameW"):
+            count = self.__uspeech.getSupportedScreenReadersCount()
+            for i in range(count):
+                name = self.__uspeech.getScreenReaderNameW(i)
+                if name:
+                    readers.append(name)
+        return readers
+
+    def get_screen_readers(self) -> List[ScreenReaderInfo]:
+        """
+        Get detailed information (id, name, availability) for all supported screen readers.
+
+        Returns:
+            List[ScreenReaderInfo]: A list of ScreenReaderInfo objects.
+        """
+        info_list: List[ScreenReaderInfo] = []
+        names = self.get_supported_screen_readers()
+        for idx, name in enumerate(names):
+            # Check availability using specific DLL functions or engine check
+            available = self._is_reader_available(idx, name)
+            info_list.append(ScreenReaderInfo(id=idx, name=name, available=available))
+        return info_list
+
+    def _is_reader_available(self, reader_id: int, name: str) -> bool:
+        """Helper to determine availability for a given screen reader."""
+        norm_name = name.lower()
+        if "nvda" in norm_name:
+            return self.nvda_is_available()
+        elif "jaws" in norm_name or "jfw" in norm_name:
+            return self.jaws_is_available()
+        elif "sapi" in norm_name:
+            return self.sapi_is_available()
+        elif "system access" in norm_name:
+            return self.system_access_is_available()
+        elif "supernova" in norm_name:
+            return self.supernova_is_available()
+        elif "window" in norm_name and "eye" in norm_name:
+            return self.window_eyes_is_available()
+        elif "cobra" in norm_name:
+            return self.cobra_is_available()
+        elif "zoomtext" in norm_name:
+            return self.zoomtext_is_available()
+        return False
+
+    def nvda_is_available(self) -> bool:
+        """Check if NVDA is running and available."""
+        if hasattr(self.__uspeech, "nvdaIsAvailable"):
+            return bool(self.__uspeech.nvdaIsAvailable())
+        return False
+
+    def jaws_is_available(self) -> bool:
+        """Check if JAWS is running and available."""
+        if hasattr(self.__uspeech, "jfwIsAvailable"):
+            return bool(self.__uspeech.jfwIsAvailable())
+        return False
+
+    def sapi_is_available(self) -> bool:
+        """Check if SAPI5 speech synthesis is available on the system."""
+        if hasattr(self.__uspeech, "sapiIsAvailable"):
+            return bool(self.__uspeech.sapiIsAvailable())
+        return False
+
+    def system_access_is_available(self) -> bool:
+        """Check if System Access is running and available."""
+        if hasattr(self.__uspeech, "saIsAvailable"):
+            return bool(self.__uspeech.saIsAvailable())
+        return False
+
+    def supernova_is_available(self) -> bool:
+        """Check if Dolphin Supernova is running and available."""
+        if hasattr(self.__uspeech, "dolIsAvailable"):
+            return bool(self.__uspeech.dolIsAvailable())
+        return False
+
+    def window_eyes_is_available(self) -> bool:
+        """Check if Window-Eyes is running and available."""
+        if hasattr(self.__uspeech, "weIsAvailable"):
+            return bool(self.__uspeech.weIsAvailable())
+        return False
+
+    def cobra_is_available(self) -> bool:
+        """Check if Cobra screen reader is running and available."""
+        if hasattr(self.__uspeech, "cbrIsAvailable"):
+            return bool(self.__uspeech.cbrIsAvailable())
+        return False
+
+    def zoomtext_is_available(self) -> bool:
+        """Check if ZoomText is running and available."""
+        if hasattr(self.__uspeech, "ztIsAvailable"):
+            return bool(self.__uspeech.ztIsAvailable())
+        return False
 
 
 __all__ = ["UniversalSpeech"]

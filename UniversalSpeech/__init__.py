@@ -33,15 +33,17 @@ from .exceptions import (
     VoiceError,
 )
 from .voices import Voice
+from .screen_readers import ScreenReaderInfo
 from .loader import Loader
 from .core import UniversalSpeech
 
 __version__ = "3.0.0"
 
 __all__ = [
-    # Core class, voice model, and loader
+    # Core class, data models, and loader
     "UniversalSpeech",
     "Voice",
+    "ScreenReaderInfo",
     "Loader",
     # Constants
     "VOLUME",
