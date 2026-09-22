@@ -11,9 +11,10 @@ with UniversalSpeech() as speech:
 
     # Check screen reader availability
     print("\n--- Screen Reader Availability ---")
-    print(f"NVDA available:  {speech.nvda_is_available()}")
-    print(f"JAWS available:  {speech.jaws_is_available()}")
-    print(f"SAPI5 available: {speech.sapi_is_available()}")
+    print(f"NVDA available:      {speech.nvda_is_available()}")
+    print(f"JAWS available:      {speech.jaws_is_available()}")
+    print(f"Narrator available:  {speech.narrator_is_available()}")
+    print(f"SAPI5 available:     {speech.sapi_is_available()}")
 
     # Voice discovery and selection
     if speech.voice_supported:

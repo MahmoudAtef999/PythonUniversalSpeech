@@ -51,6 +51,18 @@ class TestVoices(unittest.TestCase):
                 current = self.speech.get_voice()
                 self.assertEqual(current.name, target_name)
 
+    def test_set_voice_by_substring(self):
+        if self.speech.voice_supported:
+            voices = self.speech.get_voices()
+            if len(voices) > 0:
+                full_name = voices[0].name
+                # Take first word or prefix
+                prefix = full_name.split()[0]
+                self.speech.set_voice(prefix)
+                current = self.speech.get_voice()
+                self.assertIsNotNone(current)
+                self.assertTrue(prefix.lower() in current.name.lower())
+
     def test_set_voice_by_object(self):
         if self.speech.voice_supported:
             voices = self.speech.get_voices()

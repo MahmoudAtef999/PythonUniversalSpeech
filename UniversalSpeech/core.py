@@ -323,10 +323,17 @@ class UniversalSpeech:
 
         if isinstance(voice, str):
             voices = self.get_voices()
+            target = voice.strip().lower()
+            # 1. Exact match (case-insensitive)
             for v in voices:
-                if v.name.lower() == voice.lower():
+                if v.name.lower() == target:
                     self.set_value(VOICE, v.id)
                     return
+            # 2. Substring match (case-insensitive)
+            matches = [v for v in voices if target in v.name.lower()]
+            if matches:
+                self.set_value(VOICE, matches[0].id)
+                return
             raise VoiceError(f"Voice '{voice}' not found.")
 
         raise TypeError("Voice must be an int, str, or Voice instance.")
@@ -504,6 +511,8 @@ class UniversalSpeech:
             return self.cobra_is_available()
         elif "zoomtext" in norm_name:
             return self.zoomtext_is_available()
+        elif "narrator" in norm_name:
+            return self.narrator_is_available()
         return False
 
     def nvda_is_available(self) -> bool:
@@ -552,6 +561,12 @@ class UniversalSpeech:
         """Check if ZoomText is running and available."""
         if hasattr(self.__uspeech, "ztIsAvailable"):
             return bool(self.__uspeech.ztIsAvailable())
+        return False
+
+    def narrator_is_available(self) -> bool:
+        """Check if Windows Narrator is running and available."""
+        if hasattr(self.__uspeech, "narIsAvailable"):
+            return bool(self.__uspeech.narIsAvailable())
         return False
 
 

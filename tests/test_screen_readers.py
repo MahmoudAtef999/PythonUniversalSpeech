@@ -56,6 +56,7 @@ class TestScreenReaders(unittest.TestCase):
         self.assertIsInstance(self.speech.window_eyes_is_available(), bool)
         self.assertIsInstance(self.speech.cobra_is_available(), bool)
         self.assertIsInstance(self.speech.zoomtext_is_available(), bool)
+        self.assertIsInstance(self.speech.narrator_is_available(), bool)
         # On standard Windows, SAPI is always available
         self.assertTrue(self.speech.sapi_is_available())
 

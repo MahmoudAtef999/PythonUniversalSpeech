@@ -155,6 +155,7 @@ class Loader:
             "weIsAvailable",
             "cbrIsAvailable",
             "ztIsAvailable",
+            "narIsAvailable",
         ]:
             if hasattr(uspeech, func_name):
                 func = getattr(uspeech, func_name)
