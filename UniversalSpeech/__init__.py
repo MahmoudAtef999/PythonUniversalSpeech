@@ -32,14 +32,16 @@ from .exceptions import (
     EngineError,
     VoiceError,
 )
+from .voices import Voice
 from .loader import Loader
 from .core import UniversalSpeech
 
 __version__ = "3.0.0"
 
 __all__ = [
-    # Core class and loader
+    # Core class, voice model, and loader
     "UniversalSpeech",
+    "Voice",
     "Loader",
     # Constants
     "VOLUME",

@@ -2,15 +2,17 @@
 Core UniversalSpeech class and interface.
 """
 import ctypes
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, List
 from .loader import Loader
-from .exceptions import UnsupportedError
+from .exceptions import UnsupportedError, VoiceError
+from .voices import Voice
 from .constants import (
     VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED,
     RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED,
     PITCH, PITCH_MAX, PITCH_MIN, PITCH_SUPPORTED,
     INFLECTION, INFLECTION_MAX, INFLECTION_MIN, INFLECTION_SUPPORTED,
     ENABLE_NATIVE_SPEECH,
+    VOICE,
     ENGINE, ENGINE_AVAILABLE,
 )
 
@@ -132,6 +134,83 @@ class UniversalSpeech:
             i += 1
 
         return engines
+
+    @property
+    def voice_supported(self) -> bool:
+        """Check if changing voices is supported by the current speech engine."""
+        return bool(self.get_string(VOICE))
+
+    def get_voices(self) -> List[Voice]:
+        """
+        Get a list of available voices for the current speech engine.
+
+        Returns:
+            List[Voice]: A list of Voice objects available in the current engine.
+        """
+        voices: List[Voice] = []
+        i = 0
+        while True:
+            name = self.get_string(VOICE + i)
+            if not name:
+                break
+            voices.append(Voice(id=i, name=name))
+            i += 1
+        return voices
+
+    def get_voice(self) -> Optional[Voice]:
+        """
+        Get the currently selected voice.
+
+        Returns:
+            Optional[Voice]: The current Voice object, or None if no voice is selected.
+        """
+        current_id = self.get_value(VOICE)
+        if current_id < 0:
+            return None
+        name = self.get_string(VOICE + current_id)
+        if not name:
+            return None
+        return Voice(id=current_id, name=name)
+
+    @property
+    def current_voice(self) -> Optional[Voice]:
+        """Property returning the currently selected voice."""
+        return self.get_voice()
+
+    def set_voice(self, voice: Union[int, str, Voice]) -> None:
+        """
+        Set the current speech synthesis voice.
+
+        Parameters:
+            voice (Union[int, str, Voice]): The voice ID (int), name (str), or Voice object.
+
+        Raises:
+            VoiceError: If the voice is not found or voices are unsupported.
+            TypeError: If voice is of invalid type.
+        """
+        if not self.voice_supported:
+            raise VoiceError("Voices are not supported by the current engine.")
+
+        if isinstance(voice, Voice):
+            self.set_value(VOICE, voice.id)
+            return
+
+        if isinstance(voice, int):
+            name = self.get_string(VOICE + voice)
+            if not name:
+                raise VoiceError(f"Voice with ID {voice} not found.")
+            self.set_value(VOICE, voice)
+            return
+
+        if isinstance(voice, str):
+            voices = self.get_voices()
+            for v in voices:
+                if v.name.lower() == voice.lower():
+                    self.set_value(VOICE, v.id)
+                    return
+            raise VoiceError(f"Voice '{voice}' not found.")
+
+        raise TypeError("Voice must be an int, str, or Voice instance.")
 
     @property
     def rate_supported(self) -> bool:
