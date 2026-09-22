@@ -41,10 +41,10 @@ python -m unittest discover -s tests -t . -v
 ### Using pytest
 ```bash
 $env:PYTHONPATH = "."
-pytest tests -v
+python -m pytest tests -v
 ```
 
-All 30 unit tests must pass before submitting any changes.
+All 61 automated unit tests must pass before submitting any changes.
 
 ---
 
@@ -128,5 +128,13 @@ Publish to PyPI via Trusted Publishing
 
 ## 5. Security and Architecture Notes
 
+- **Modular Architecture:**
+  - `UniversalSpeech/core.py`: Main `UniversalSpeech` class implementation.
+  - `UniversalSpeech/loader.py`: 32-bit and 64-bit DLL loader and ctypes signature configuration.
+  - `UniversalSpeech/constants.py`: Constants, `SpeechParam`, and `ScreenReaderId` enums.
+  - `UniversalSpeech/voices.py`: `Voice` dataclass and voice discovery helpers.
+  - `UniversalSpeech/screen_readers.py`: `ScreenReaderInfo` dataclass for screen reader status.
+  - `UniversalSpeech/__main__.py`: Command-Line Interface (`python -m UniversalSpeech`).
+  - `UniversalSpeech/py.typed`: PEP 561 compliance marker for static type checkers.
 - **ZDSRAPI.dll:** This library is intentionally **not** bundled with UniversalSpeech. The C library includes safe fallback handling if the DLL is absent.
 - **Native DLLs:** All native DLLs (`UniversalSpeech.dll`, `dolapi.dll`, `jfwapi.dll`, `nvdaControllerClient.dll`, `SAAPI32.dll`) are bundled in `lib/` (32-bit) and `lib64/` (64-bit) for seamless runtime execution on Windows.

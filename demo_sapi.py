@@ -1,5 +1,5 @@
 """
-Comprehensive demonstration of UniversalSpeech 3.0.0 features with SAPI5.
+Comprehensive demonstration of UniversalSpeech 2.0.0 features with SAPI5.
 All messages, logs, and outputs are presented entirely in English.
 """
 import time
@@ -8,7 +8,7 @@ from UniversalSpeech import UniversalSpeech, VoiceError, UnsupportedError
 
 def main() -> None:
     print("==================================================")
-    print("    UniversalSpeech 3.0.0 Feature Demo (SAPI5)   ")
+    print("    UniversalSpeech 2.0.0 Feature Demo (SAPI5)   ")
     print("==================================================\n")
 
     # 1. Using Context Manager
@@ -49,7 +49,7 @@ def main() -> None:
         # 5. Basic speech output and completion waiting
         print("\n--- 5. Speech Output and Synchronization (wait) ---")
         print("   Speaking greeting message...")
-        speech.say("Hello! This is a complete demonstration of UniversalSpeech 3.0.0 with SAPI5.")
+        speech.say("Hello! This is a complete demonstration of UniversalSpeech 2.0.0 with SAPI5.")
         speech.wait()
         print("   Speech completed.")
 

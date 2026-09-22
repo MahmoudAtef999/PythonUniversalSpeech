@@ -40,7 +40,7 @@ from .screen_readers import ScreenReaderInfo
 from .loader import Loader
 from .core import UniversalSpeech
 
-__version__ = "3.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     # Core class, data models, and loader

@@ -1,5 +1,5 @@
 """
-UniversalSpeech Example Usage (Version 3.0.0)
+UniversalSpeech Example Usage (Version 2.0.0)
 """
 from UniversalSpeech import UniversalSpeech, UnsupportedError, VoiceError
 
@@ -30,8 +30,8 @@ with UniversalSpeech() as speech:
 
     # Speech and Braille output
     print("\nSpeaking and displaying braille...")
-    speech.say("Hello from UniversalSpeech 3.0.0!", interrupt=True)
-    speech.braille("UniversalSpeech 3.0.0")
+    speech.say("Hello from UniversalSpeech 2.0.0!", interrupt=True)
+    speech.braille("UniversalSpeech 2.0.0")
 
     # Flow control: wait for speech to complete
     speech.wait(timeout_ms=1000)

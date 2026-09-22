@@ -32,7 +32,7 @@ Alternatively, you can download the project directly from the GitHub repository 
 
 ## Usage:
 
-### Using as a Context Manager (Recommended in 3.0+):
+### Using as a Context Manager (Recommended in 2.0+):
 
 ```python
 from UniversalSpeech import UniversalSpeech
@@ -129,6 +129,35 @@ All exceptions inherit from `UniversalSpeechError`:
 - `UnsupportedError`: Raised when a feature is unsupported by the active engine.
 - `EngineError`: Raised when an invalid engine is requested.
 - `VoiceError`: Raised when an invalid voice is requested.
+
+## Migration Guide: Modern API vs. Legacy Methods
+
+UniversalSpeech 2.0.0 is a major modernization release. While **both legacy methods and the modern API work fully side-by-side** to ensure 100% backward compatibility, older low-level procedural patterns and parameter getter/setter methods are scheduled for future deprecation.
+
+Users and maintainers are strongly encouraged to upgrade to the modern API, which is cleaner, safer, and fully typed.
+
+### Comparison Table
+
+| Feature | Legacy Method (Deprecated soon) | Modern API (Recommended in 2.0+) | Rationale |
+| :--- | :--- | :--- | :--- |
+| **Lifecycle** | `speech = UniversalSpeech()` | `with UniversalSpeech() as speech:` | Automatic speech stop and resource cleanup on exit |
+| **Speech Rate** | `speech.set_value(RATE, val)` | `speech.set_rate(val)` | Dedicated method with range and support validation |
+| **Rate Check** | `speech.get_value(RATE_SUPPORTED)` | `speech.rate_supported` | Intuitive boolean property |
+| **Volume** | `speech.set_value(VOLUME, val)` | `speech.set_volume(val)` | Safe 0–100 volume setter |
+| **Volume Check** | `speech.get_value(VOLUME_SUPPORTED)` | `speech.volume_supported` | Intuitive boolean property |
+| **Pitch** | `speech.set_value(PITCH, val)` | `speech.set_pitch(val)` | Dedicated method with support check |
+| **Pitch Check** | `speech.get_value(PITCH_SUPPORTED)` | `speech.pitch_supported` | Intuitive boolean property |
+| **Inflection** | `speech.set_value(INFLECTION, val)` | `speech.set_inflection(val)` | Clean setter method |
+| **Wait** | `speech.get_value(WAIT)` / `setValue(WAIT, ms)` | `speech.wait(timeout_ms)` | Clear, blocking synchronization method |
+| **Busy Check** | `speech.get_value(BUSY)` | `speech.is_busy` | Simple boolean property |
+| **Pause / Resume**| `speech.set_value(PAUSED, 1/0)` | `speech.pause()` / `speech.resume()` | Standard audio playback API ergonomics |
+| **Paused Check** | `speech.get_value(PAUSED)` | `speech.is_paused` | Simple boolean property |
+| **Voices** | `speech.get_string(SP_VOICE + i)` | `speech.get_voices()` / `speech.set_voice('Zira')` | Structured `Voice` objects with substring search |
+| **Screen Readers**| `speech.get_string(SP_ENGINE + i)` | `speech.get_screen_readers()` | Typed `ScreenReaderInfo` with active status |
+| **Reader Check** | Custom loops / ID checks | `speech.nvda_is_available()`, etc. | Direct, instant availability methods |
+| **Reader Version**| N/A (Direct DLL export) | `speech.nvda_get_version()`, `speech.jfw_get_version()` | Instant version string query |
+| **Constants** | `from UniversalSpeech import VOLUME, ...` | `from UniversalSpeech import SpeechParam` | Structured, autocomplete-friendly `IntEnum` |
+| **ANSI Speech** | `speech.sayA("msg")` | `speech.say_a("msg")` | Consistent snake_case naming |
 
 ## Credits & Attribution
 
