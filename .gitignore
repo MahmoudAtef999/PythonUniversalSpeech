@@ -24,3 +24,6 @@ htmlcov/
 .vscode/
 .idea/
 *.swp
+
+# Temporary TTS cache files
+*.dic
