@@ -46,12 +46,23 @@ class TestConstants(unittest.TestCase):
         self.assertEqual(UniversalSpeech.USER_PARAM, 0x1000000)
 
     def test_exceptions_inheritance(self):
-        self.assertTrue(issubclass(DLLFileNotFoundError, Exception))
-        self.assertTrue(issubclass(UnsupportedError, Exception))
+        from UniversalSpeech import UniversalSpeechError, EngineError, VoiceError
+        self.assertTrue(issubclass(UniversalSpeechError, Exception))
+        self.assertTrue(issubclass(DLLFileNotFoundError, UniversalSpeechError))
+        self.assertTrue(issubclass(UnsupportedError, UniversalSpeechError))
+        self.assertTrue(issubclass(EngineError, UniversalSpeechError))
+        self.assertTrue(issubclass(VoiceError, UniversalSpeechError))
+
+    def test_enums(self):
+        from UniversalSpeech import SpeechParam, ScreenReaderId
+        self.assertEqual(SpeechParam.VOLUME, UniversalSpeech.VOLUME)
+        self.assertEqual(SpeechParam.ENGINE, UniversalSpeech.ENGINE)
+        self.assertEqual(ScreenReaderId.NVDA, 2)
+        self.assertEqual(ScreenReaderId.SAPI5, 9)
 
     def test_version_defined(self):
         self.assertTrue(hasattr(UniversalSpeech, "__version__"))
-        self.assertEqual(UniversalSpeech.__version__, "2.0.0")
+        self.assertEqual(UniversalSpeech.__version__, "3.0.0")
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ include readme.md
 include LICENSE
 recursive-include UniversalSpeech/lib *.dll *.tlb
 recursive-include UniversalSpeech/lib64 *.dll *.tlb
+include UniversalSpeech/py.typed
 global-exclude ZDSRAPI.dll
 global-exclude *.py[cod]
 global-exclude __pycache__

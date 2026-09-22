@@ -1,0 +1,110 @@
+"""
+Constants and enumerations for the UniversalSpeech library.
+
+This module defines speech parameter identifiers, engine identifiers,
+and screen reader constants used by UniversalSpeech.dll.
+"""
+from enum import IntEnum
+
+# Identifiers for parameters
+VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED, \
+RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED, \
+PITCH, PITCH_MAX, PITCH_MIN, PITCH_SUPPORTED, \
+INFLECTION, INFLECTION_MAX, INFLECTION_MIN, INFLECTION_SUPPORTED, \
+PAUSED, PAUSE_SUPPORTED, \
+BUSY, BUSY_SUPPORTED, \
+WAIT, WAIT_SUPPORTED \
+    = range(0, 22)
+
+ENABLE_NATIVE_SPEECH = 0xFFFF
+VOICE = 0x10000
+LANGUAGE = 0x20000
+SUBENGINE = 0x30000
+ENGINE = 0x40000
+ENGINE_AVAILABLE = 0x50000
+AUTO_ENGINE = 0xFFFE
+USER_PARAM = 0x1000000
+
+
+class SpeechParam(IntEnum):
+    """Enumeration of parameters supported by speechSetValue / speechGetValue."""
+    VOLUME = VOLUME
+    VOLUME_MAX = VOLUME_MAX
+    VOLUME_MIN = VOLUME_MIN
+    VOLUME_SUPPORTED = VOLUME_SUPPORTED
+    RATE = RATE
+    RATE_MAX = RATE_MAX
+    RATE_MIN = RATE_MIN
+    RATE_SUPPORTED = RATE_SUPPORTED
+    PITCH = PITCH
+    PITCH_MAX = PITCH_MAX
+    PITCH_MIN = PITCH_MIN
+    PITCH_SUPPORTED = PITCH_SUPPORTED
+    INFLECTION = INFLECTION
+    INFLECTION_MAX = INFLECTION_MAX
+    INFLECTION_MIN = INFLECTION_MIN
+    INFLECTION_SUPPORTED = INFLECTION_SUPPORTED
+    PAUSED = PAUSED
+    PAUSE_SUPPORTED = PAUSE_SUPPORTED
+    BUSY = BUSY
+    BUSY_SUPPORTED = BUSY_SUPPORTED
+    WAIT = WAIT
+    WAIT_SUPPORTED = WAIT_SUPPORTED
+    ENABLE_NATIVE_SPEECH = ENABLE_NATIVE_SPEECH
+    VOICE = VOICE
+    LANGUAGE = LANGUAGE
+    SUBENGINE = SUBENGINE
+    ENGINE = ENGINE
+    ENGINE_AVAILABLE = ENGINE_AVAILABLE
+    AUTO_ENGINE = AUTO_ENGINE
+    USER_PARAM = USER_PARAM
+
+
+class ScreenReaderId(IntEnum):
+    """Screen reader IDs as defined by UniversalSpeech.dll."""
+    JAWS = 0
+    WINDOW_EYES = 1
+    NVDA = 2
+    SYSTEM_ACCESS = 3
+    SUPERNOVA = 4
+    ZOOMTEXT = 5
+    ZDSR = 6
+    COBRA = 7
+    NARRATOR = 8
+    SAPI5 = 9
+
+
+__all__ = [
+    "VOLUME",
+    "VOLUME_MAX",
+    "VOLUME_MIN",
+    "VOLUME_SUPPORTED",
+    "RATE",
+    "RATE_MAX",
+    "RATE_MIN",
+    "RATE_SUPPORTED",
+    "PITCH",
+    "PITCH_MAX",
+    "PITCH_MIN",
+    "PITCH_SUPPORTED",
+    "INFLECTION",
+    "INFLECTION_MAX",
+    "INFLECTION_MIN",
+    "INFLECTION_SUPPORTED",
+    "PAUSED",
+    "PAUSE_SUPPORTED",
+    "BUSY",
+    "BUSY_SUPPORTED",
+    "WAIT",
+    "WAIT_SUPPORTED",
+    "ENABLE_NATIVE_SPEECH",
+    "VOICE",
+    "LANGUAGE",
+    "SUBENGINE",
+    "ENGINE",
+    "ENGINE_AVAILABLE",
+    "AUTO_ENGINE",
+    "USER_PARAM",
+    "SpeechParam",
+    "ScreenReaderId",
+]
