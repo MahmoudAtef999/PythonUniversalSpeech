@@ -34,6 +34,24 @@ class UniversalSpeech:
     def __init__(self) -> None:
         self.__uspeech = Loader().load()
 
+    def __enter__(self) -> "UniversalSpeech":
+        """Support context manager entry: `with UniversalSpeech() as speech:`."""
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Support context manager exit by stopping any ongoing speech."""
+        self.close()
+
+    def close(self) -> None:
+        """Stop speech and clean up resources."""
+        self.stop()
+
+    def __repr__(self) -> str:
+        return f"<UniversalSpeech engine={self.engine_used!r}, reader={self.current_screen_reader_name!r}>"
+
+    def __str__(self) -> str:
+        return f"UniversalSpeech({self.engine_used or 'None'})"
+
     def say(self, msg: str, interrupt: bool = True):
         """Say the given message using the speech engine.
         Parameters:
