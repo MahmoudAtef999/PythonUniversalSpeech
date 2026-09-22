@@ -2,21 +2,23 @@
 
 ## Overview:
 
-The PythonUniversalSpeech library is a Python interface for interacting with the UniversalSpeech DLL, providing convenient functionality for speech synthesis and braille display. This library is compatible with both 32-bit and 64-bit versions of Python.
+The PythonUniversalSpeech library is a Python interface for interacting with the UniversalSpeech DLL, providing convenient functionality for speech synthesis and braille display. This library is compatible with both 32-bit and 64-bit versions of Python on Windows.
 
 UniversalSpeech aims to streamline and simplify access to speech within applications. It accomplishes this by providing a unified interface that allows speech to be achieved through various means, including active screen readers, direct synthesis, or native/OS speech engines. The library dynamically adapts based on what is available and supported, offering a cohesive and versatile solution for speech-related functionalities.
 
-PythonUniversalSpeech is built upon the UniversalSpeech, initially developed by [qtnc](https://github.com/qtnc). To learn more about the project and its details, you can visit the [UniversalSpeech GitHub repository](https://github.com/qtnc/UniversalSpeech).
+PythonUniversalSpeech is built upon UniversalSpeech, initially developed by [qtnc](https://github.com/qtnc). To learn more about the project and its details, you can visit the [UniversalSpeech GitHub repository](https://github.com/qtnc/UniversalSpeech).
 
 ## Supported engines:
 
-- Jaws for windows.
-- NVDA 2011.1 or above.
-- Windows eye.
-- System access.
-- Supernova.
-- Cobra, partially.
-- SAPI 5.
+- Jaws for Windows
+- NVDA 2011.1 or above
+- Windows-Eyes
+- System Access
+- Dolphin Supernova
+- ZoomText
+- Cobra (partially)
+- Windows Narrator
+- SAPI 5
 
 ## Installation:
 
@@ -26,114 +28,104 @@ To install the UniversalSpeech library, you can use the following pip command:
 pip install UniversalSpeech
 ```
 
-Alternatively, you can download the project directly from the GitHub repository here and use it in your Python project.
+Alternatively, you can download the project directly from the GitHub repository and use it in your Python project.
 
 ## Usage:
 
-### UniversalSpeech Class:
+### Using as a Context Manager (Recommended in 3.0+):
 
-The `UniversalSpeech` class provides a simplified interface for workingwith the UniversalSpeech DLL.
+```python
+from UniversalSpeech import UniversalSpeech
 
-### Attributes:
+with UniversalSpeech() as speech:
+    speech.say("Hello from UniversalSpeech!")
+    speech.wait()
+```
 
-- `engine_used` (str): Returns the name of the currently used speech engine.
-- `rate_supported` (bool): Indicates whether setting the speech rate is supported in the current engine.
-- `volume_supported` (bool): Indicates whether setting the speech volume is supported in the current engine.
-- `pitch_supported` (bool): Indicates whether setting the speech pitch is supported in the current engine.
-- `inflection_supported` (bool): Indicates whether setting the speech inflection is supported in the current engine.
+### UniversalSpeech Class Reference:
 
-### Methods:
+#### Properties:
+- `engine_used` (str): Name of the currently active speech engine.
+- `current_screen_reader_name` (str): Name of the active screen reader (e.g. `NVDA`, `Jaws`, `SAPI5`).
+- `current_screen_reader_id` (int): Integer ID of the active screen reader.
+- `current_voice` (Optional[Voice]): Currently selected voice object.
+- `voice_supported` (bool): Whether changing voices is supported by the current engine.
+- `is_busy` (bool): Whether speech is currently in progress.
+- `busy_supported` (bool): Whether checking busy status is supported.
+- `is_paused` (bool): Whether speech playback is paused.
+- `pause_supported` (bool): Whether pausing speech is supported.
+- `wait_supported` (bool): Whether waiting for speech completion is supported.
+- `rate_supported` (bool): Whether setting speech rate is supported.
+- `volume_supported` (bool): Whether setting speech volume is supported.
+- `pitch_supported` (bool): Whether setting speech pitch is supported.
+- `inflection_supported` (bool): Whether setting speech inflection is supported.
 
-- `say(msg: str, interrupt: bool = True) -> None`: 
-  - Says the given message using the speech engine.
+#### Speech & Braille Methods:
+- `say(msg: str, interrupt: bool = True) -> None`: Speaks message using the active engine.
+- `say_a(msg: str, interrupt: bool = True) -> None`: Speaks the first letter/character of the message.
+- `braille(msg: str) -> None`: Displays message on connected braille display.
+- `speech(msg: str) -> None`: Performs both speech and braille display.
+- `speech_a(msg: str) -> None`: Performs both `say_a` and braille display.
+- `stop() -> None`: Immediately stops speech.
+- `close() -> None`: Stops speech and cleans up resources.
+- `say_ssml(ssml: str) -> bool`: Speaks XML/SSML formatted text if supported.
 
-- `say_a(msg: str, interrupt: bool = True) -> None`: 
-  - Says the first letter of the given message using the speech engine.
+#### Playback & Flow Control:
+- `wait(timeout_ms: Optional[int] = None) -> bool`: Waits for speech playback to finish.
+- `pause(paused: bool = True) -> None`: Pauses or unpauses speech playback.
+- `resume() -> None`: Resumes paused speech playback.
+- `reset_engine() -> None`: Restores default automatic engine selection.
 
-- `braille(msg: str) -> None`: 
-  - Displays the given message in braille.
+#### Voice & Engine Configuration:
+- `get_voices() -> List[Voice]`: Returns list of available voices.
+- `get_voice() -> Optional[Voice]`: Returns the currently active voice.
+- `set_voice(voice: Union[int, str, Voice]) -> None`: Sets active voice by index, name, or Voice instance.
+- `get_engines() -> Dict[str, Dict]`: Returns dictionary of all engines with availability status.
+- `set_engine(engine: str) -> None`: Sets speech engine to the specified engine name.
+- `enable_native_speech(enabled: bool = True) -> None`: Enables or disables fallback to native OS engines (SAPI5).
 
-- `speech(msg: str) -> None`: 
-  - Performs both speech and braille display for the given message.
+#### Screen Reader Information:
+- `get_supported_screen_readers() -> List[str]`: List of all 10 supported screen readers.
+- `get_screen_readers() -> List[ScreenReaderInfo]`: List of ScreenReaderInfo objects with availability.
+- `nvda_is_available() -> bool`: True if NVDA is running.
+- `jaws_is_available() -> bool`: True if JAWS is running.
+- `sapi_is_available() -> bool`: True if SAPI5 is available.
+- `system_access_is_available() -> bool`: True if System Access is running.
+- `supernova_is_available() -> bool`: True if Dolphin Supernova is running.
+- `window_eyes_is_available() -> bool`: True if Window-Eyes is running.
+- `cobra_is_available() -> bool`: True if Cobra is running.
+- `zoomtext_is_available() -> bool`: True if ZoomText is running.
 
-- `speech_a(msg: str) -> None`: 
-  - Performs  speech_a and braille  for the given message.
+## Command-Line Interface (CLI):
 
-- `stop() -> None`: 
-  - Stops the speech.
+UniversalSpeech can be run directly from the terminal:
 
-- `get_value(what) -> int`: 
-  - Gets the current value of a specific speech parameter.
-  - Note: You can see the available parameters by looking at the beginning of [this file](https://github.com/MahmoudAtef999/PythonUniversalSpeech/blob/main/UniversalSpeech/__init__.py).
+```bash
+# Speak a message
+python -m UniversalSpeech "Hello world"
 
-- `set_value(what, value) -> None`: 
-  - Sets the value of a specific speech parameter.
+# Speak and display on braille
+python -m UniversalSpeech "Hello" --braille
 
-- `get_string(what) -> str`: 
-  - Gets a string representation of a specific speech parameter.
+# Show currently active engine and screen reader
+python -m UniversalSpeech --current
 
-- `enable_native_speech(enabled: bool = True) -> None`: 
-  - Determines whether to use native speech engines, such as SAPI on Windows, that are generally reliable and can be used when no other engines are available. 
-  - If enabled is set to True, native speech engines are used; if set to False, speech is ignored in such cases.
+# List available voices
+python -m UniversalSpeech --list-voices
 
-- `get_engines() -> Dict[str, Dict]`: 
-  - Gets a dictionary of available speech engines with their names, availability, and IDs.
-
-- `set_engine(engine: str) -> None`:
-  - Sets the speech synthesis engine to the specified one.
-  - `engine` (str): The name of the speech synthesis engine to set.
-
-- `set_rate(value: int, min_rate: int = None, max_rate: int = None) -> None`: 
-  - Sets the speech rate and, optionally, the minimum and maximum rates.
-
-- `set_volume(value: int, min_volume: int = None, max_volume: int = None) -> None`: 
-  - Sets the speech volume and, optionally, the minimum and maximum volume.
-
-- `set_pitch(value: int, min_pitch: int = None, max_pitch: int = None) -> None`: 
-  - Sets the speech pitch and, optionally, the minimum and maximum pitch.
-
-- `set_inflection(value: int, min_inflexion: int = None, max_inflexion: int = None) -> None`: 
-  - Sets the speech inflection and, optionally, the minimum and maximum inflexion.
+# List supported engines and screen readers
+python -m UniversalSpeech --list-engines
+python -m UniversalSpeech --list-readers
+```
 
 ## Exceptions:
 
-- `DLLFileNotFoundError(Exception)`: 
-  - Raised when one or more required DLL files are missing.
-
-- `UnsupportedError(Exception)`: 
-  - Raised when a specific function is not supported with the current engine.
-
-## Example:
-
-```python
-import UniversalSpeech
-
-# Create an instance of UniversalSpeech
-uspeech = UniversalSpeech.UniversalSpeech()
-
-# Enable the use of native speech engines such as SAPI 
-uspeech.enable_native_speech(True)
-
-#Say a message
-uspeech.say("Hello, world.")
-
-# Display a message in braille
-uspeech.braille("Hello, world.")
-
-# Get engine used
-engine_used = uspeech.engine_used
-print("You are using {}.".format(engine_used))
-
-# Get list of available engines
-available_engines = uspeech.get_engines()
-print(available_engines)
-
-# set the rate if it is supported
-try:
-    uspeech.set_rate(150)
-except UniversalSpeech.exceptions.UnsupportedError as e:
-    print(e)
-```
+All exceptions inherit from `UniversalSpeechError`:
+- `UniversalSpeechError`: Base exception for the library.
+- `DLLFileNotFoundError`: Raised when required DLL files are missing.
+- `UnsupportedError`: Raised when a feature is unsupported by the active engine.
+- `EngineError`: Raised when an invalid engine is requested.
+- `VoiceError`: Raised when an invalid voice is requested.
 
 ## Contributing
 

@@ -1,28 +1,41 @@
-import UniversalSpeech
+"""
+UniversalSpeech Example Usage (Version 3.0.0)
+"""
+from UniversalSpeech import UniversalSpeech, UnsupportedError, VoiceError
 
-# Create an instance of UniversalSpeech
-uspeech = UniversalSpeech.UniversalSpeech()
+# Using UniversalSpeech as a context manager
+with UniversalSpeech() as speech:
+    print(f"UniversalSpeech instance: {speech}")
+    print(f"Active Engine:        {speech.engine_used}")
+    print(f"Active Screen Reader: {speech.current_screen_reader_name}")
 
-# Enable the use of native speech engines such as SAPI 
-uspeech.enable_native_speech(True)
+    # Check screen reader availability
+    print("\n--- Screen Reader Availability ---")
+    print(f"NVDA available:  {speech.nvda_is_available()}")
+    print(f"JAWS available:  {speech.jaws_is_available()}")
+    print(f"SAPI5 available: {speech.sapi_is_available()}")
 
-#Say a message
-uspeech.say("Hello, world.")
+    # Voice discovery and selection
+    if speech.voice_supported:
+        voices = speech.get_voices()
+        print(f"\nFound {len(voices)} available voices.")
+        if voices:
+            print(f"Default Voice: {speech.current_voice}")
+            # Set to first voice
+            speech.set_voice(voices[0])
+            print(f"Selected Voice: {speech.current_voice}")
 
-# Display a message in braille
-uspeech.braille("Hello, world.")
+    # Speech and Braille output
+    print("\nSpeaking and displaying braille...")
+    speech.say("Hello from UniversalSpeech 3.0.0!", interrupt=True)
+    speech.braille("UniversalSpeech 3.0.0")
 
-# Get engine used
-engine_used = uspeech.engine_used
-print("You are using {}.".format(engine_used))
+    # Flow control: wait for speech to complete
+    speech.wait(timeout_ms=1000)
 
-# Get list of available engines
-available_engines = uspeech.get_engines()
-print(available_engines)
+    # Adjust speech rate if supported
+    if speech.rate_supported:
+        speech.set_rate(150)
+        print("Rate set to 150.")
 
-# set the rate if it is supported
-try:
-    uspeech.set_rate(150)
-except UniversalSpeech.exceptions.UnsupportedError as e:
-    print(e)
-
+print("\nDone!")

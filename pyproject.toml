@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniversalSpeech"
-version = "2.0.0"
+version = "3.0.0"
 description = "UniversalSpeech simplifies speech access in applications through a unified interface, supporting diverse methods such as screen readers, direct synthesis, and native/OS speech engines."
 readme = "readme.md"
 authors = [
