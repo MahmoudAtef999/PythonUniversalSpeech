@@ -285,6 +285,10 @@ class UniversalSpeech:
         """
         current_id = self.get_value(VOICE)
         if current_id < 0:
+            if self.voice_supported:
+                default_name = self.get_string(VOICE)
+                if default_name:
+                    return Voice(id=0, name=default_name)
             return None
         name = self.get_string(VOICE + current_id)
         if not name:
