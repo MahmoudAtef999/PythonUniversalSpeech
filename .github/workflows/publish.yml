@@ -8,22 +8,17 @@ on:
     inputs:
       dry_run:
         description: "Dry run (build and verify only, do not upload to PyPI)"
-        required: true
+        required: false
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read
-  id-token: write  # Required for PyPI Trusted Publishing via OIDC
 
 jobs:
-  pypi-publish:
-    name: Build and publish to PyPI
+  build:
+    name: Build and verify distributions
     runs-on: windows-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/UniversalSpeech
-
     defaults:
       run:
         shell: pwsh
@@ -76,8 +71,32 @@ jobs:
           print('Distribution contents and security checks passed successfully.')
           "@
 
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: [build]
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/UniversalSpeech
+    permissions:
+      id-token: write  # Required for PyPI Trusted Publishing via OIDC
+
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
       - name: Publish to PyPI via Trusted Publishing
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          packages-dir: dist/
           verbose: true
