@@ -9,10 +9,12 @@ with UniversalSpeech() as speech:
     print(f"Active Engine:        {speech.engine_used}")
     print(f"Active Screen Reader: {speech.current_screen_reader_name}")
 
-    # Check screen reader availability
-    print("\n--- Screen Reader Availability ---")
-    print(f"NVDA available:      {speech.nvda_is_available()}")
-    print(f"JAWS available:      {speech.jaws_is_available()}")
+    # Check screen reader availability and versions
+    print("\n--- Screen Reader Availability & Versions ---")
+    nvda_ver = speech.nvda_get_version()
+    jaws_ver = speech.jfw_get_version()
+    print(f"NVDA available:      {speech.nvda_is_available()}" + (f" (Version: {nvda_ver})" if nvda_ver else ""))
+    print(f"JAWS available:      {speech.jaws_is_available()}" + (f" (Version: {jaws_ver})" if jaws_ver else ""))
     print(f"Narrator available:  {speech.narrator_is_available()}")
     print(f"SAPI5 available:     {speech.sapi_is_available()}")
 

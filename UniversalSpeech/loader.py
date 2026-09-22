@@ -183,5 +183,14 @@ class Loader:
             uspeech.sapiSaySSMLW.restype = ctypes.c_int
             uspeech.sapiSaySSMLW.argtypes = [ctypes.c_wchar_p]
 
+        # Version query functions
+        if hasattr(uspeech, "nvdaGetRunningVersion"):
+            uspeech.nvdaGetRunningVersion.restype = ctypes.c_int
+            uspeech.nvdaGetRunningVersion.argtypes = [ctypes.c_char_p, ctypes.c_int]
+
+        if hasattr(uspeech, "jfwGetRunningVersion"):
+            uspeech.jfwGetRunningVersion.restype = ctypes.c_int
+            uspeech.jfwGetRunningVersion.argtypes = [ctypes.c_char_p, ctypes.c_int]
+
 
 __all__ = ["Loader"]

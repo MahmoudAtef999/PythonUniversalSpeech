@@ -60,6 +60,23 @@ class TestScreenReaders(unittest.TestCase):
         # On standard Windows, SAPI is always available
         self.assertTrue(self.speech.sapi_is_available())
 
+    def test_screen_reader_versions(self):
+        nvda_ver = self.speech.nvda_get_version()
+        if nvda_ver is not None:
+            self.assertIsInstance(nvda_ver, str)
+            self.assertTrue(len(nvda_ver) > 0)
+        if self.speech.nvda_is_available():
+            self.assertIsInstance(nvda_ver, str)
+            self.assertTrue(len(nvda_ver) > 0)
+
+        jfw_ver = self.speech.jfw_get_version()
+        if jfw_ver is not None:
+            self.assertIsInstance(jfw_ver, str)
+            self.assertTrue(len(jfw_ver) > 0)
+        if self.speech.jaws_is_available():
+            self.assertIsInstance(jfw_ver, str)
+            self.assertTrue(len(jfw_ver) > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

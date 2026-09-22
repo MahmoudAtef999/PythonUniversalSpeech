@@ -573,5 +573,35 @@ class UniversalSpeech:
             return bool(self.__uspeech.narIsAvailable())
         return False
 
+    def nvda_get_version(self) -> Optional[str]:
+        """
+        Get the version string of the currently running NVDA screen reader.
+
+        Returns:
+            Optional[str]: The NVDA version string (e.g. '2026.2'), or None if NVDA is not running.
+        """
+        if hasattr(self.__uspeech, "nvdaGetRunningVersion"):
+            buf = ctypes.create_string_buffer(256)
+            if self.__uspeech.nvdaGetRunningVersion(buf, 256):
+                val = buf.value.decode("utf-8", errors="replace").strip()
+                if val:
+                    return val
+        return None
+
+    def jfw_get_version(self) -> Optional[str]:
+        """
+        Get the version string of the currently running JAWS screen reader.
+
+        Returns:
+            Optional[str]: The JAWS version string (e.g. '2025.0'), or None if JAWS is not running.
+        """
+        if hasattr(self.__uspeech, "jfwGetRunningVersion"):
+            buf = ctypes.create_string_buffer(256)
+            if self.__uspeech.jfwGetRunningVersion(buf, 256):
+                val = buf.value.decode("utf-8", errors="replace").strip()
+                if val:
+                    return val
+        return None
+
 
 __all__ = ["UniversalSpeech"]

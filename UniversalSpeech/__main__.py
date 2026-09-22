@@ -111,7 +111,13 @@ def main(args: Optional[list] = None) -> int:
         if parsed.list_readers:
             print("Supported Screen Readers:")
             for r in speech.get_screen_readers():
-                status = "[Active/Running]" if r.available else "[Not Detected]"
+                ver = None
+                if "nvda" in r.name.lower():
+                    ver = speech.nvda_get_version()
+                elif "jaws" in r.name.lower() or "jfw" in r.name.lower():
+                    ver = speech.jfw_get_version()
+                ver_suffix = f" (v{ver})" if ver else ""
+                status = f"[Active/Running{ver_suffix}]" if r.available else (f"[Detected{ver_suffix}]" if ver else "[Not Detected]")
                 print(f"  - {r.name:<16} {status}")
             return 0
 
