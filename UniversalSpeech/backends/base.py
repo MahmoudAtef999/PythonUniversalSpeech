@@ -80,7 +80,7 @@ class BaseBackend(ABC):
 
     def set_engine(self, engine: Union[str, int, ScreenReaderId, ScreenReaderInfo]) -> None:
         """Set active speech engine."""
-        pass
+        raise UnsupportedError(f"Engine switching is not supported on {self.__class__.__name__}")
 
     def get_engines(self) -> Dict[str, Dict[str, Any]]:
         """Get dictionary of all engines."""
@@ -117,7 +117,8 @@ class BaseBackend(ABC):
 
     def pause(self, paused: bool = True) -> None:
         """Pause or unpause speech playback."""
-        pass
+        if not self.pause_supported:
+            raise UnsupportedError(f"Pause is not supported on {self.__class__.__name__}")
 
     def resume(self) -> None:
         """Resume speech playback."""
@@ -168,17 +169,20 @@ class BaseBackend(ABC):
 
     def get_rate(self) -> int:
         """Get current speech rate."""
+        if not self.rate_supported:
+            raise UnsupportedError(f"Rate query is not supported on {self.__class__.__name__}")
         return 50
 
     def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
         """Set speech rate."""
+        if not self.rate_supported:
+            raise UnsupportedError(f"Set rate is not supported on {self.__class__.__name__}")
         if min_rate is not None or max_rate is not None:
             warnings.warn(
                 "min_rate and max_rate parameters are deprecated and ignored because engine boundaries are read-only; use rate_range instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        pass
 
     @property
     def rate(self) -> int:
@@ -212,17 +216,20 @@ class BaseBackend(ABC):
 
     def get_volume(self) -> int:
         """Get current speech volume."""
+        if not self.volume_supported:
+            raise UnsupportedError(f"Volume query is not supported on {self.__class__.__name__}")
         return 100
 
     def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
         """Set speech volume."""
+        if not self.volume_supported:
+            raise UnsupportedError(f"Set volume is not supported on {self.__class__.__name__}")
         if min_volume is not None or max_volume is not None:
             warnings.warn(
                 "min_volume and max_volume parameters are deprecated and ignored because engine boundaries are read-only; use volume_range instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        pass
 
     @property
     def volume(self) -> int:
@@ -256,17 +263,20 @@ class BaseBackend(ABC):
 
     def get_pitch(self) -> int:
         """Get current pitch."""
+        if not self.pitch_supported:
+            raise UnsupportedError(f"Pitch query is not supported on {self.__class__.__name__}")
         return 50
 
     def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
         """Set pitch."""
+        if not self.pitch_supported:
+            raise UnsupportedError(f"Set pitch is not supported on {self.__class__.__name__}")
         if min_pitch is not None or max_pitch is not None:
             warnings.warn(
                 "min_pitch and max_pitch parameters are deprecated and ignored because engine boundaries are read-only; use pitch_range instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        pass
 
     @property
     def pitch(self) -> int:
@@ -300,17 +310,20 @@ class BaseBackend(ABC):
 
     def get_inflection(self) -> int:
         """Get current inflection."""
+        if not self.inflection_supported:
+            raise UnsupportedError(f"Inflection query is not supported on {self.__class__.__name__}")
         return 50
 
     def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
         """Set inflection."""
+        if not self.inflection_supported:
+            raise UnsupportedError(f"Set inflection is not supported on {self.__class__.__name__}")
         if min_inflection is not None or max_inflection is not None:
             warnings.warn(
                 "min_inflection and max_inflection parameters are deprecated and ignored because engine boundaries are read-only; use inflection_range instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-        pass
 
     @property
     def inflection(self) -> int:

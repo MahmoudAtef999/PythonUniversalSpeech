@@ -19,8 +19,8 @@ class TestMockScreenReaders(unittest.TestCase):
 
     def setUp(self):
         self.speech = UniversalSpeech()
-        # Access the underlying mockable ctypes object
-        self.uspeech = self.speech._UniversalSpeech__uspeech
+        # Access the underlying mockable ctypes object via backend
+        self.uspeech = self.speech.backend.uspeech
 
     def test_mock_nvda_active_and_version(self):
         """Simulate NVDA running with a specific version string."""
@@ -105,8 +105,8 @@ class TestMockScreenReaders(unittest.TestCase):
             values[param] = val
             return 1
 
-        with patch.object(self.speech, "get_value", side_effect=fake_get_value), \
-             patch.object(self.speech, "set_value", side_effect=fake_set_value):
+        with patch.object(self.speech.backend, "get_value", side_effect=fake_get_value), \
+             patch.object(self.speech.backend, "set_value", side_effect=fake_set_value):
 
             # Pitch verification
             self.assertTrue(self.speech.pitch_supported)

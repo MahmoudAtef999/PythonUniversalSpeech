@@ -63,16 +63,6 @@ class UniversalSpeech(BaseBackend):
         """The underlying active platform backend instance."""
         return self._backend
 
-    @property
-    def _UniversalSpeech__uspeech(self) -> Any:
-        """Access underlying ctypes CDLL for Windows backward compatibility."""
-        return getattr(self._backend, "uspeech", None)
-
-    @_UniversalSpeech__uspeech.setter
-    def _UniversalSpeech__uspeech(self, value: Any) -> None:
-        if hasattr(self._backend, "uspeech"):
-            self._backend.__dict__["_WindowsBackend__uspeech"] = value
-
     def __enter__(self) -> "UniversalSpeech":
         """Support context manager entry: `with UniversalSpeech() as speech:`."""
         return self
@@ -206,13 +196,9 @@ class UniversalSpeech(BaseBackend):
     # Rate
     @property
     def rate_supported(self) -> bool:
-        if "get_value" in self.__dict__:
-            return bool(self.get_value(RATE_SUPPORTED))
         return self._backend.rate_supported
 
     def get_rate(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(RATE)
         return self._backend.get_rate()
 
     def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
@@ -222,9 +208,6 @@ class UniversalSpeech(BaseBackend):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if "set_value" in self.__dict__:
-            self.set_value(RATE, rate)
-            return
         self._backend.set_rate(rate)
 
     @property
@@ -237,14 +220,10 @@ class UniversalSpeech(BaseBackend):
 
     @property
     def rate_min(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(RATE_MIN)
         return self._backend.rate_min
 
     @property
     def rate_max(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(RATE_MAX)
         return self._backend.rate_max
 
     @property
@@ -254,13 +233,9 @@ class UniversalSpeech(BaseBackend):
     # Volume
     @property
     def volume_supported(self) -> bool:
-        if "get_value" in self.__dict__:
-            return bool(self.get_value(VOLUME_SUPPORTED))
         return self._backend.volume_supported
 
     def get_volume(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(VOLUME)
         return self._backend.get_volume()
 
     def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
@@ -270,9 +245,6 @@ class UniversalSpeech(BaseBackend):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if "set_value" in self.__dict__:
-            self.set_value(VOLUME, volume)
-            return
         self._backend.set_volume(volume)
 
     @property
@@ -285,14 +257,10 @@ class UniversalSpeech(BaseBackend):
 
     @property
     def volume_min(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(VOLUME_MIN)
         return self._backend.volume_min
 
     @property
     def volume_max(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(VOLUME_MAX)
         return self._backend.volume_max
 
     @property
@@ -302,13 +270,9 @@ class UniversalSpeech(BaseBackend):
     # Pitch
     @property
     def pitch_supported(self) -> bool:
-        if "get_value" in self.__dict__:
-            return bool(self.get_value(PITCH_SUPPORTED))
         return self._backend.pitch_supported
 
     def get_pitch(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(PITCH)
         return self._backend.get_pitch()
 
     def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
@@ -318,9 +282,6 @@ class UniversalSpeech(BaseBackend):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if "set_value" in self.__dict__:
-            self.set_value(PITCH, pitch)
-            return
         self._backend.set_pitch(pitch)
 
     @property
@@ -333,14 +294,10 @@ class UniversalSpeech(BaseBackend):
 
     @property
     def pitch_min(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(PITCH_MIN)
         return self._backend.pitch_min
 
     @property
     def pitch_max(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(PITCH_MAX)
         return self._backend.pitch_max
 
     @property
@@ -350,13 +307,9 @@ class UniversalSpeech(BaseBackend):
     # Inflection
     @property
     def inflection_supported(self) -> bool:
-        if "get_value" in self.__dict__:
-            return bool(self.get_value(INFLECTION_SUPPORTED))
         return self._backend.inflection_supported
 
     def get_inflection(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(INFLECTION)
         return self._backend.get_inflection()
 
     def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
@@ -366,9 +319,6 @@ class UniversalSpeech(BaseBackend):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if "set_value" in self.__dict__:
-            self.set_value(INFLECTION, inflection)
-            return
         self._backend.set_inflection(inflection)
 
     @property
@@ -381,18 +331,15 @@ class UniversalSpeech(BaseBackend):
 
     @property
     def inflection_min(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(INFLECTION_MIN)
         return self._backend.inflection_min
 
     @property
     def inflection_max(self) -> int:
-        if "get_value" in self.__dict__:
-            return self.get_value(INFLECTION_MAX)
         return self._backend.inflection_max
 
     @property
     def inflection_range(self) -> Tuple[int, int]:
+        return (self.inflection_min, self.inflection_max)
         return (self.inflection_min, self.inflection_max)
 
     # Screen Readers & Engines
