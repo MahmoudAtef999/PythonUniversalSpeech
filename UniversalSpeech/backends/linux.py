@@ -28,6 +28,7 @@ class _SSIPSocketClient:
         self._current_rate: Optional[int] = None
         self._current_volume: Optional[int] = None
         self._current_pitch: Optional[int] = None
+        self._lock = threading.Lock()
         self._connect(socket_path, port)
 
     def _connect(self, socket_path: Optional[str], port: Optional[int]) -> None:
@@ -56,14 +57,21 @@ class _SSIPSocketClient:
             self.close()
 
     def _send_command(self, cmd: str) -> Optional[str]:
-        if not self.sock:
-            return None
-        try:
-            self.sock.sendall((cmd + "\r\n").encode("utf-8"))
-            return self._read_response()
-        except Exception:
-            self.close()
-            return None
+        with self._lock:
+            if not self.sock:
+                return None
+            try:
+                self.sock.sendall((cmd + "\r\n").encode("utf-8"))
+                return self._read_response()
+            except Exception:
+                self._connected = False
+                if self.sock:
+                    try:
+                        self.sock.close()
+                    except Exception:
+                        pass
+                    self.sock = None
+                return None
 
     def _read_response(self) -> Optional[str]:
         """
@@ -95,34 +103,41 @@ class _SSIPSocketClient:
             return None
 
     def speak(self, text: str) -> bool:
-        if not self._connected or not self.sock:
-            return False
-        try:
-            # 1. Initiate speech transaction
-            self.sock.sendall(b"SPEAK\r\n")
-            ack = self._read_response()
-            if not ack or not ack.startswith("230"):
+        with self._lock:
+            if not self._connected or not self.sock:
                 return False
+            try:
+                # 1. Initiate speech transaction
+                self.sock.sendall(b"SPEAK\r\n")
+                ack = self._read_response()
+                if not ack or not ack.startswith("230"):
+                    return False
 
-            # 2. Dot-escape every line starting with '.' and ensure \r\n endings
-            normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-            escaped_lines: List[str] = []
-            for line in normalized.split("\n"):
-                if line.startswith("."):
-                    escaped_lines.append("." + line)
-                else:
-                    escaped_lines.append(line)
-            safe_body = "\r\n".join(escaped_lines)
+                # 2. Dot-escape every line starting with '.' and ensure \r\n endings
+                normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+                escaped_lines: List[str] = []
+                for line in normalized.split("\n"):
+                    if line.startswith("."):
+                        escaped_lines.append("." + line)
+                    else:
+                        escaped_lines.append(line)
+                safe_body = "\r\n".join(escaped_lines)
 
-            # 3. Transmit text and end-of-data marker (\r\n.\r\n)
-            self.sock.sendall(safe_body.encode("utf-8") + b"\r\n.\r\n")
+                # 3. Transmit text and end-of-data marker (\r\n.\r\n)
+                self.sock.sendall(safe_body.encode("utf-8") + b"\r\n.\r\n")
 
-            # 4. Read final queued response (e.g. 225 OK MESSAGE QUEUED)
-            resp = self._read_response()
-            return bool(resp and resp.startswith("2"))
-        except Exception:
-            self.close()
-            return False
+                # 4. Read final queued response (e.g. 225 OK MESSAGE QUEUED)
+                resp = self._read_response()
+                return bool(resp and resp.startswith("2"))
+            except Exception:
+                self._connected = False
+                if self.sock:
+                    try:
+                        self.sock.close()
+                    except Exception:
+                        pass
+                    self.sock = None
+                return False
 
     def cancel(self) -> bool:
         resp = self._send_command("CANCEL self")
@@ -154,17 +169,18 @@ class _SSIPSocketClient:
             self._current_pitch = val
 
     def close(self) -> None:
-        if self.sock:
-            try:
-                self.sock.close()
-            except Exception:
-                pass
-            self.sock = None
-        self._connected = False
-        self._recv_buffer = ""
-        self._current_rate = None
-        self._current_volume = None
-        self._current_pitch = None
+        with self._lock:
+            if self.sock:
+                try:
+                    self.sock.close()
+                except Exception:
+                    pass
+                self.sock = None
+            self._connected = False
+            self._recv_buffer = ""
+            self._current_rate = None
+            self._current_volume = None
+            self._current_pitch = None
 
     @property
     def is_connected(self) -> bool:
@@ -185,6 +201,9 @@ class LinuxBackend(BaseBackend):
         self._active_engine_name = "auto"
         self._current_engine = "None"
         self._rate = 50
+        self._volume = 100
+        self._pitch = 50
+        self._process_lock = threading.Lock()
         self._volume = 100
         self._pitch = 50
 
@@ -375,11 +394,12 @@ class LinuxBackend(BaseBackend):
                     spd_rate = int((self._rate - 50) * 2)
                     spd_pitch = int((self._pitch - 50) * 2)
                     spd_vol = int((self._volume - 50) * 2)
-                    self._last_process = subprocess.Popen(
-                        ["spd-say", "-w", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
+                    with self._process_lock:
+                        self._last_process = subprocess.Popen(
+                            ["spd-say", "-w", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
                     return 1
                 except Exception:
                     pass
@@ -408,11 +428,12 @@ class LinuxBackend(BaseBackend):
             if espeak_bin:
                 try:
                     wpm = int(80 + (self._rate / 100.0) * 300)
-                    self._last_process = subprocess.Popen(
-                        [espeak_bin, "-s", str(wpm), "-a", str(self._volume), "-p", str(self._pitch), msg],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
+                    with self._process_lock:
+                        self._last_process = subprocess.Popen(
+                            [espeak_bin, "-s", str(wpm), "-a", str(self._volume), "-p", str(self._pitch), msg],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
                     return 1
                 except Exception:
                     pass
@@ -440,26 +461,28 @@ class LinuxBackend(BaseBackend):
             except Exception:
                 pass
 
-        if self._last_process and self._last_process.poll() is None:
-            try:
-                self._last_process.terminate()
-                self._last_process.wait(timeout=1.0)
-                self._last_process = None
-                success = True
-            except Exception:
-                pass
+        with self._process_lock:
+            if self._last_process and self._last_process.poll() is None:
+                try:
+                    self._last_process.terminate()
+                    self._last_process.wait(timeout=1.0)
+                    self._last_process = None
+                    success = True
+                except Exception:
+                    pass
 
         return 1 if success else 0
 
     def close(self) -> None:
-        if self._last_process:
-            try:
-                if self._last_process.poll() is None:
-                    self._last_process.terminate()
-                    self._last_process.wait(timeout=1.0)
-            except Exception:
-                pass
-            self._last_process = None
+        with self._process_lock:
+            if self._last_process:
+                try:
+                    if self._last_process.poll() is None:
+                        self._last_process.terminate()
+                        self._last_process.wait(timeout=1.0)
+                except Exception:
+                    pass
+                self._last_process = None
         if self._ssip_client:
             self._ssip_client.close()
             self._ssip_client = None
@@ -471,8 +494,9 @@ class LinuxBackend(BaseBackend):
                 return bool(self._espeak_lib.espeak_IsPlaying())
             except Exception:
                 pass
-        if self._last_process:
-            return self._last_process.poll() is None
+        with self._process_lock:
+            if self._last_process:
+                return self._last_process.poll() is None
         return False
 
     @property
@@ -491,10 +515,15 @@ class LinuxBackend(BaseBackend):
         start_time = time.time()
         timeout_sec = timeout_ms / 1000.0 if timeout_ms is not None else None
 
-        if self._last_process:
+        with self._process_lock:
+            proc = self._last_process
+
+        if proc:
             try:
-                self._last_process.wait(timeout=timeout_sec)
-                self._last_process = None
+                proc.wait(timeout=timeout_sec)
+                with self._process_lock:
+                    if self._last_process is proc:
+                        self._last_process = None
                 return True
             except Exception:
                 return False

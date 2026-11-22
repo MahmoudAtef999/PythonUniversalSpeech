@@ -4,8 +4,10 @@ with zero external dependencies.
 """
 import os
 import sys
+import time
 import shutil
 import subprocess
+import threading
 from typing import Optional, Dict, Any, Union, List, Tuple
 from .base import BaseBackend
 from ..voices import Voice
@@ -27,6 +29,9 @@ class MacOSBackend(BaseBackend):
         self._volume = 100    # 0..100
         self._selected_voice: Optional[Voice] = None
         self._last_process: Optional[subprocess.Popen] = None
+        self._process_lock = threading.Lock()
+        self._vo_cache_time: float = 0.0
+        self._vo_cached_val: bool = False
 
         self._resolve_engine()
 
@@ -42,26 +47,34 @@ class MacOSBackend(BaseBackend):
     def engine_used(self) -> str:
         return self._current_engine
 
-    def voiceover_is_available(self) -> bool:
-        """Check if Apple VoiceOver is currently running."""
+    def voiceover_is_available(self, force_check: bool = False) -> bool:
+        """Check if Apple VoiceOver is currently running (cached for 1.0s to avoid pgrep bottlenecks)."""
+        now = time.time()
+        if not force_check and (now - self._vo_cache_time) < 1.0:
+            return self._vo_cached_val
+
+        val = False
         # Fast check via pgrep
         if shutil.which("pgrep"):
             try:
                 res = subprocess.run(["pgrep", "-x", "VoiceOver"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if res.returncode == 0:
-                    return True
+                    val = True
             except Exception:
                 pass
 
         # AppleScript check
-        if shutil.which("osascript"):
+        if not val and shutil.which("osascript"):
             try:
                 cmd = 'tell application "System Events" to (name of processes) contains "VoiceOver"'
                 out = subprocess.check_output(["osascript", "-e", cmd], stderr=subprocess.DEVNULL, timeout=1.0)
-                return "true" in out.decode("utf-8", errors="ignore").lower()
+                val = "true" in out.decode("utf-8", errors="ignore").lower()
             except Exception:
                 pass
-        return False
+
+        self._vo_cached_val = val
+        self._vo_cache_time = now
+        return val
 
     @property
     def current_screen_reader_name(self) -> str:
@@ -167,11 +180,12 @@ class MacOSBackend(BaseBackend):
                 vol_factor = max(0.0, min(1.0, round(self._volume / 100.0, 2)))
                 cmd.append(f"[[volm {vol_factor}]] {msg}")
 
-                self._last_process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
+                with self._process_lock:
+                    self._last_process = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
                 return 1
             except Exception:
                 pass
@@ -180,7 +194,7 @@ class MacOSBackend(BaseBackend):
 
     def stop(self) -> int:
         success = False
-        # Stop VoiceOver speech
+        # Stop VoiceOver speech only if it was running
         if self.voiceover_is_available() and shutil.which("osascript"):
             try:
                 script = 'tell application "VoiceOver" to output ""'
@@ -191,26 +205,28 @@ class MacOSBackend(BaseBackend):
                 pass
 
         # Stop say process spawned by this instance
-        if self._last_process and self._last_process.poll() is None:
-            try:
-                self._last_process.terminate()
-                self._last_process.wait(timeout=1.0)
-                self._last_process = None
-                success = True
-            except Exception:
-                pass
+        with self._process_lock:
+            if self._last_process and self._last_process.poll() is None:
+                try:
+                    self._last_process.terminate()
+                    self._last_process.wait(timeout=1.0)
+                    self._last_process = None
+                    success = True
+                except Exception:
+                    pass
 
         return 1 if success else 0
 
     def close(self) -> None:
-        if self._last_process:
-            try:
-                if self._last_process.poll() is None:
-                    self._last_process.terminate()
-                    self._last_process.wait(timeout=1.0)
-            except Exception:
-                pass
-            self._last_process = None
+        with self._process_lock:
+            if self._last_process:
+                try:
+                    if self._last_process.poll() is None:
+                        self._last_process.terminate()
+                        self._last_process.wait(timeout=1.0)
+                except Exception:
+                    pass
+                self._last_process = None
 
     @property
     def wait_supported(self) -> bool:
@@ -221,11 +237,15 @@ class MacOSBackend(BaseBackend):
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
         if not self.wait_supported:
             return False
-        if self._last_process:
+        with self._process_lock:
+            proc = self._last_process
+        if proc:
             try:
                 timeout = timeout_ms / 1000.0 if timeout_ms is not None else None
-                self._last_process.wait(timeout=timeout)
-                self._last_process = None
+                proc.wait(timeout=timeout)
+                with self._process_lock:
+                    if self._last_process is proc:
+                        self._last_process = None
                 return True
             except Exception:
                 return False
