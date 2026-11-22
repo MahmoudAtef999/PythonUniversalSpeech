@@ -167,7 +167,7 @@ class BaseBackend(ABC):
         """Get current speech rate."""
         return 50
 
-    def set_rate(self, rate: int) -> None:
+    def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
         """Set speech rate."""
         pass
 
@@ -205,7 +205,7 @@ class BaseBackend(ABC):
         """Get current speech volume."""
         return 100
 
-    def set_volume(self, volume: int) -> None:
+    def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
         """Set speech volume."""
         pass
 
@@ -243,7 +243,7 @@ class BaseBackend(ABC):
         """Get current pitch."""
         return 50
 
-    def set_pitch(self, pitch: int) -> None:
+    def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
         """Set pitch."""
         pass
 
@@ -281,7 +281,7 @@ class BaseBackend(ABC):
         """Get current inflection."""
         return 50
 
-    def set_inflection(self, inflection: int) -> None:
+    def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
         """Set inflection."""
         pass
 

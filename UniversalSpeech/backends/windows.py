@@ -39,15 +39,15 @@ class WindowsBackend(BaseBackend):
         return self.__uspeech
 
     def say(self, msg: str, interrupt: bool = True) -> int:
-        return self.__uspeech.speechSay(msg, interrupt)
+        return int(self.__uspeech.speechSay(msg, interrupt))
 
     def say_a(self, msg: Union[str, bytes], interrupt: bool = True) -> int:
         if isinstance(msg, str):
             msg = msg.encode("mbcs", errors="replace")
-        return self.__uspeech.speechSayA(msg, interrupt)
+        return int(self.__uspeech.speechSayA(msg, interrupt))
 
     def braille(self, msg: str) -> int:
-        return self.__uspeech.brailleDisplay(msg)
+        return int(self.__uspeech.brailleDisplay(msg))
 
     def speech(self, msg: str, interrupt: bool = True) -> None:
         self.say(msg, interrupt=interrupt)
@@ -59,22 +59,23 @@ class WindowsBackend(BaseBackend):
         self.braille(braille_msg)
 
     def stop(self) -> int:
-        return self.__uspeech.speechStop()
+        return int(self.__uspeech.speechStop())
 
     def close(self) -> None:
         self.stop()
 
     def get_value(self, what: int) -> int:
-        return self.__uspeech.speechGetValue(what)
+        return int(self.__uspeech.speechGetValue(what))
 
     def set_value(self, what: int, value: int) -> int:
-        return self.__uspeech.speechSetValue(what, value)
+        return int(self.__uspeech.speechSetValue(what, value))
 
     def get_string(self, what: int) -> Optional[str]:
-        return self.__uspeech.speechGetString(what)
+        res = self.__uspeech.speechGetString(what)
+        return str(res) if res is not None else None
 
     def set_string(self, what: int, value: str) -> int:
-        return self.__uspeech.speechSetString(what, value)
+        return int(self.__uspeech.speechSetString(what, value))
 
     def enable_native_speech(self, enabled: bool = True) -> None:
         self.set_value(ENABLE_NATIVE_SPEECH, enabled)
@@ -232,6 +233,10 @@ class WindowsBackend(BaseBackend):
     @property
     def current_voice(self) -> Optional[Voice]:
         return self.get_voice()
+
+    @current_voice.setter
+    def current_voice(self, voice: Union[int, str, Voice]) -> None:
+        self.set_voice(voice)
 
     def set_voice(self, voice: Union[int, str, Voice]) -> None:
         if not self.voice_supported:
@@ -420,13 +425,13 @@ class WindowsBackend(BaseBackend):
         if hasattr(self.__uspeech, "getCurrentScreenReaderNameW"):
             name = self.__uspeech.getCurrentScreenReaderNameW()
             if name:
-                return name
+                return str(name)
         return ""
 
     @property
     def current_screen_reader_id(self) -> int:
         if hasattr(self.__uspeech, "getCurrentScreenReader"):
-            return self.__uspeech.getCurrentScreenReader()
+            return int(self.__uspeech.getCurrentScreenReader())
         return -1
 
     def get_supported_screen_readers(self) -> List[str]:
