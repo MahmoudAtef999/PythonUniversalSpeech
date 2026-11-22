@@ -69,7 +69,7 @@ class MacOSBackend(BaseBackend):
 
     @property
     def current_screen_reader_id(self) -> int:
-        return 200 if self.voiceover_is_available() else 0
+        return 200 if self.voiceover_is_available() else -1
 
     def get_supported_screen_readers(self) -> List[str]:
         return ["VoiceOver"]
@@ -118,7 +118,7 @@ class MacOSBackend(BaseBackend):
         if eng_str in ("auto", "0", "default", "none"):
             self.reset_engine()
             return
-        elif "voiceover" in eng_str or "vo" in eng_str:
+        elif eng_str in ("voiceover", "voice over", "vo") or "voiceover" in eng_str or "voice over" in eng_str:
             if not self.voiceover_is_available():
                 raise EngineError("VoiceOver is not currently running.")
             self._active_engine_name = "voiceover"
@@ -162,7 +162,10 @@ class MacOSBackend(BaseBackend):
                 cmd = ["say", "-r", str(wpm)]
                 if self._selected_voice:
                     cmd.extend(["-v", self._selected_voice.name])
-                cmd.append(msg)
+
+                # Apply volume via embedded speech synthesis control [[volm X]] (0.0 to 1.0)
+                vol_factor = max(0.0, min(1.0, round(self._volume / 100.0, 2)))
+                cmd.append(f"[[volm {vol_factor}]] {msg}")
 
                 self._last_process = subprocess.Popen(
                     cmd,
@@ -211,9 +214,13 @@ class MacOSBackend(BaseBackend):
 
     @property
     def wait_supported(self) -> bool:
-        return True
+        if self._active_engine_name == "voiceover" or (self._active_engine_name == "auto" and self.voiceover_is_available()):
+            return False
+        return bool(shutil.which("say"))
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
+        if not self.wait_supported:
+            return False
         if self._last_process:
             try:
                 timeout = timeout_ms / 1000.0 if timeout_ms is not None else None
@@ -280,7 +287,7 @@ class MacOSBackend(BaseBackend):
             out = subprocess.check_output(["say", "-v", "?"], stderr=subprocess.DEVNULL, timeout=3.0)
             lines = out.decode("utf-8", errors="ignore").splitlines()
             voices: List[Voice] = []
-            for idx, line in enumerate(lines):
+            for line in lines:
                 line = line.strip()
                 if not line or "#" not in line:
                     continue
@@ -290,7 +297,7 @@ class MacOSBackend(BaseBackend):
                 if len(parts) >= 2:
                     locale = parts[-1]
                     name = " ".join(parts[:-1])
-                    voices.append(Voice(id=idx, name=name, language=locale))
+                    voices.append(Voice(id=len(voices), name=name, language=locale))
             return voices
         except Exception:
             return []
@@ -299,7 +306,23 @@ class MacOSBackend(BaseBackend):
         if self._selected_voice:
             return self._selected_voice
         voices = self.get_voices()
-        return voices[0] if voices else None
+        if not voices:
+            return None
+        # Try finding system default voice via defaults read com.apple.speech.voice.prefs SelectedVoiceName
+        try:
+            if shutil.which("defaults"):
+                def_name = subprocess.check_output(
+                    ["defaults", "read", "com.apple.speech.voice.prefs", "SelectedVoiceName"],
+                    stderr=subprocess.DEVNULL,
+                    timeout=1.0,
+                ).decode("utf-8", errors="ignore").strip()
+                if def_name:
+                    for v in voices:
+                        if v.name.lower() == def_name.lower():
+                            return v
+        except Exception:
+            pass
+        return voices[0]
 
     def set_voice(self, voice: Union[Voice, int, str]) -> None:
         voices = self.get_voices()

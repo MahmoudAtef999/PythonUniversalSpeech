@@ -140,5 +140,30 @@ class TestMacOSBackend(unittest.TestCase):
             self.assertEqual(diag["platform"], "darwin")
 
 
+    def test_macos_improvements_v3(self):
+        """Test screen reader id -1, set_engine non-vo substring, volume embedding, and wait support."""
+        with patch("shutil.which", return_value="/usr/bin/say"), \
+             patch("subprocess.Popen") as mock_popen, \
+             patch.object(MacOSBackend, "voiceover_is_available", return_value=False):
+
+            backend = MacOSBackend()
+            # 1. Screen reader ID is -1 when inactive
+            self.assertEqual(backend.current_screen_reader_id, -1)
+
+            # 2. set_engine does NOT choose voiceover when string contains 'vo' like 'native voice'
+            backend.set_engine("native voice")
+            self.assertEqual(backend._active_engine_name, "say")
+
+            # 3. say embeds volume tag [[volm X]]
+            backend.volume = 50
+            backend.say("Hello volume test")
+            mock_popen.assert_called_once()
+            cmd_args = mock_popen.call_args[0][0]
+            self.assertTrue(any("[[volm 0.5]]" in arg for arg in cmd_args))
+
+            # 4. wait_supported is True for say
+            self.assertTrue(backend.wait_supported)
+
+
 if __name__ == "__main__":
     unittest.main()
