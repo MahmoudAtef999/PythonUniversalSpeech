@@ -3,6 +3,7 @@ Abstract base backend defining the contract and default behaviors for platform-s
 """
 from abc import ABC, abstractmethod
 import re
+import warnings
 from typing import Optional, Dict, Any, Union, List, Tuple
 from ..voices import Voice
 from ..screen_readers import ScreenReaderInfo
@@ -169,6 +170,12 @@ class BaseBackend(ABC):
 
     def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
         """Set speech rate."""
+        if min_rate is not None or max_rate is not None:
+            warnings.warn(
+                "min_rate and max_rate parameters are deprecated and ignored because engine boundaries are read-only; use rate_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         pass
 
     @property
@@ -207,6 +214,12 @@ class BaseBackend(ABC):
 
     def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
         """Set speech volume."""
+        if min_volume is not None or max_volume is not None:
+            warnings.warn(
+                "min_volume and max_volume parameters are deprecated and ignored because engine boundaries are read-only; use volume_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         pass
 
     @property
@@ -245,6 +258,12 @@ class BaseBackend(ABC):
 
     def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
         """Set pitch."""
+        if min_pitch is not None or max_pitch is not None:
+            warnings.warn(
+                "min_pitch and max_pitch parameters are deprecated and ignored because engine boundaries are read-only; use pitch_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         pass
 
     @property
@@ -283,6 +302,12 @@ class BaseBackend(ABC):
 
     def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
         """Set inflection."""
+        if min_inflection is not None or max_inflection is not None:
+            warnings.warn(
+                "min_inflection and max_inflection parameters are deprecated and ignored because engine boundaries are read-only; use inflection_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         pass
 
     @property

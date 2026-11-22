@@ -3,6 +3,7 @@ Windows backend for UniversalSpeech, interfacing with UniversalSpeech.dll.
 """
 import sys
 import ctypes
+import warnings
 from typing import Optional, Dict, Any, Union, List, Tuple
 from .base import BaseBackend
 from ..loader import Loader
@@ -292,11 +293,13 @@ class WindowsBackend(BaseBackend):
     def set_rate(self, value: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
         if not self.rate_supported:
             raise UnsupportedError("Set rate is not supported with the current engine.")
+        if min_rate is not None or max_rate is not None:
+            warnings.warn(
+                "min_rate and max_rate parameters are deprecated and ignored because engine boundaries are read-only; use rate_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.set_value(RATE, value)
-        if min_rate is not None:
-            self.set_value(RATE_MIN, min_rate)
-        if max_rate is not None:
-            self.set_value(RATE_MAX, max_rate)
 
     @property
     def rate(self) -> int:
@@ -326,11 +329,13 @@ class WindowsBackend(BaseBackend):
     def set_volume(self, value: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
         if not self.volume_supported:
             raise UnsupportedError("Set volume is not supported with the current engine.")
+        if min_volume is not None or max_volume is not None:
+            warnings.warn(
+                "min_volume and max_volume parameters are deprecated and ignored because engine boundaries are read-only; use volume_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.set_value(VOLUME, value)
-        if min_volume is not None:
-            self.set_value(VOLUME_MIN, min_volume)
-        if max_volume is not None:
-            self.set_value(VOLUME_MAX, max_volume)
 
     @property
     def volume(self) -> int:
@@ -360,11 +365,13 @@ class WindowsBackend(BaseBackend):
     def set_pitch(self, value: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
         if not self.pitch_supported:
             raise UnsupportedError("Set pitch is not supported with the current engine.")
+        if min_pitch is not None or max_pitch is not None:
+            warnings.warn(
+                "min_pitch and max_pitch parameters are deprecated and ignored because engine boundaries are read-only; use pitch_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.set_value(PITCH, value)
-        if min_pitch is not None:
-            self.set_value(PITCH_MIN, min_pitch)
-        if max_pitch is not None:
-            self.set_value(PITCH_MAX, max_pitch)
 
     @property
     def pitch(self) -> int:
@@ -394,11 +401,13 @@ class WindowsBackend(BaseBackend):
     def set_inflection(self, value: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
         if not self.inflection_supported:
             raise UnsupportedError("Set inflection is not supported with the current engine.")
+        if min_inflection is not None or max_inflection is not None:
+            warnings.warn(
+                "min_inflection and max_inflection parameters are deprecated and ignored because engine boundaries are read-only; use inflection_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.set_value(INFLECTION, value)
-        if min_inflection is not None:
-            self.set_value(INFLECTION_MIN, min_inflection)
-        if max_inflection is not None:
-            self.set_value(INFLECTION_MAX, max_inflection)
 
     @property
     def inflection(self) -> int:

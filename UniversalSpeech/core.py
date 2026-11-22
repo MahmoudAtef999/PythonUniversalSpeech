@@ -2,6 +2,7 @@
 Core UniversalSpeech facade and interface.
 """
 import sys
+import warnings
 from typing import Optional, Dict, Any, Union, List, Tuple
 from .backends.base import BaseBackend
 from .exceptions import PlatformError
@@ -210,10 +211,16 @@ class UniversalSpeech(BaseBackend):
         return self._backend.get_rate()
 
     def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
+        if min_rate is not None or max_rate is not None:
+            warnings.warn(
+                "min_rate and max_rate parameters are deprecated and ignored because engine boundaries are read-only; use rate_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if "set_value" in self.__dict__:
             self.set_value(RATE, rate)
             return
-        self._backend.set_rate(rate, min_rate=min_rate, max_rate=max_rate)
+        self._backend.set_rate(rate)
 
     @property
     def rate(self) -> int:
@@ -252,10 +259,16 @@ class UniversalSpeech(BaseBackend):
         return self._backend.get_volume()
 
     def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
+        if min_volume is not None or max_volume is not None:
+            warnings.warn(
+                "min_volume and max_volume parameters are deprecated and ignored because engine boundaries are read-only; use volume_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if "set_value" in self.__dict__:
             self.set_value(VOLUME, volume)
             return
-        self._backend.set_volume(volume, min_volume=min_volume, max_volume=max_volume)
+        self._backend.set_volume(volume)
 
     @property
     def volume(self) -> int:
@@ -294,10 +307,16 @@ class UniversalSpeech(BaseBackend):
         return self._backend.get_pitch()
 
     def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
+        if min_pitch is not None or max_pitch is not None:
+            warnings.warn(
+                "min_pitch and max_pitch parameters are deprecated and ignored because engine boundaries are read-only; use pitch_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if "set_value" in self.__dict__:
             self.set_value(PITCH, pitch)
             return
-        self._backend.set_pitch(pitch, min_pitch=min_pitch, max_pitch=max_pitch)
+        self._backend.set_pitch(pitch)
 
     @property
     def pitch(self) -> int:
@@ -336,10 +355,16 @@ class UniversalSpeech(BaseBackend):
         return self._backend.get_inflection()
 
     def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
+        if min_inflection is not None or max_inflection is not None:
+            warnings.warn(
+                "min_inflection and max_inflection parameters are deprecated and ignored because engine boundaries are read-only; use inflection_range instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if "set_value" in self.__dict__:
             self.set_value(INFLECTION, inflection)
             return
-        self._backend.set_inflection(inflection, min_inflection=min_inflection, max_inflection=max_inflection)
+        self._backend.set_inflection(inflection)
 
     @property
     def inflection(self) -> int:
