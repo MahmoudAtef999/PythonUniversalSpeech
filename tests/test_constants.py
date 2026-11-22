@@ -46,12 +46,13 @@ class TestConstants(unittest.TestCase):
         self.assertEqual(UniversalSpeech.USER_PARAM, 0x1000000)
 
     def test_exceptions_inheritance(self):
-        from UniversalSpeech import UniversalSpeechError, EngineError, VoiceError
+        from UniversalSpeech import UniversalSpeechError, EngineError, VoiceError, PlatformError
         self.assertTrue(issubclass(UniversalSpeechError, Exception))
         self.assertTrue(issubclass(DLLFileNotFoundError, UniversalSpeechError))
         self.assertTrue(issubclass(UnsupportedError, UniversalSpeechError))
         self.assertTrue(issubclass(EngineError, UniversalSpeechError))
         self.assertTrue(issubclass(VoiceError, UniversalSpeechError))
+        self.assertTrue(issubclass(PlatformError, UniversalSpeechError))
 
     def test_enums(self):
         from UniversalSpeech import SpeechParam, ScreenReaderId

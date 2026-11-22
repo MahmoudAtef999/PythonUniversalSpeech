@@ -5,7 +5,7 @@ import os
 import sys
 import ctypes
 from typing import Optional
-from .exceptions import DLLFileNotFoundError
+from .exceptions import DLLFileNotFoundError, PlatformError
 
 
 class Loader:
@@ -61,8 +61,14 @@ class Loader:
             ctypes.CDLL: The ctypes object representing the loaded library.
 
         Raises:
+            PlatformError: Raised if running on an unsupported operating system.
             DLLFileNotFoundError: Raised if any required DLL file is missing.
         """
+        if sys.platform != "win32":
+            raise PlatformError(
+                "UniversalSpeech currently only supports Windows. Cross-platform support is planned for v3."
+            )
+
         if not self._files_check():
             raise DLLFileNotFoundError("Missing dll files.")
 

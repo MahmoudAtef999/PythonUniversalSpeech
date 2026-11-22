@@ -1,7 +1,9 @@
 import unittest
+import sys
 import ctypes
+from unittest.mock import patch
 from UniversalSpeech.load import Loader
-from UniversalSpeech.exceptions import DLLFileNotFoundError
+from UniversalSpeech.exceptions import DLLFileNotFoundError, PlatformError
 
 
 class TestLoader(unittest.TestCase):
@@ -35,6 +37,12 @@ class TestLoader(unittest.TestCase):
         self.assertFalse(loader._files_check())
         with self.assertRaises(DLLFileNotFoundError):
             loader.load()
+
+    def test_unsupported_platform_raises_error(self):
+        loader = Loader()
+        with patch.object(sys, "platform", "linux"):
+            with self.assertRaises(PlatformError):
+                loader.load()
 
 
 if __name__ == "__main__":

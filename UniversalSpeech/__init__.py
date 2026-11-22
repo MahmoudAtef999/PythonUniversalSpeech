@@ -34,6 +34,7 @@ from .exceptions import (
     UnsupportedError,
     EngineError,
     VoiceError,
+    PlatformError,
 )
 from .voices import Voice
 from .screen_readers import ScreenReaderInfo
@@ -87,4 +88,5 @@ __all__ = [
     "UnsupportedError",
     "EngineError",
     "VoiceError",
+    "PlatformError",
 ]

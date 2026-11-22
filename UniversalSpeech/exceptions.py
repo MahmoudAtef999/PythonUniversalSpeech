@@ -28,10 +28,16 @@ class VoiceError(UniversalSpeechError):
     pass
 
 
+class PlatformError(UniversalSpeechError):
+    """Raised when an operation or the library is invoked on an unsupported platform."""
+    pass
+
+
 __all__ = [
     "UniversalSpeechError",
     "DLLFileNotFoundError",
     "UnsupportedError",
     "EngineError",
     "VoiceError",
+    "PlatformError",
 ]
