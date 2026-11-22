@@ -192,8 +192,8 @@ def main(args: Optional[list] = None) -> int:
                     else:
                         try:
                             import select
-                            r, _, _ = select.select([sys.stdin], [], [], 0.0)
-                            has_data = bool(r)
+                            readable, _, _ = select.select([sys.stdin], [], [], 0.0)
+                            has_data = bool(readable)
                         except Exception:
                             has_data = True
 
