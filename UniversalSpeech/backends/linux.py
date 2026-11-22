@@ -192,10 +192,42 @@ class LinuxBackend(BaseBackend):
             for libname in ("libespeak-ng.so.1", "libespeak-ng.so", "libespeak.so.1", "libespeak.so"):
                 try:
                     lib = ctypes.cdll.LoadLibrary(libname)
-                    # Initialize espeak: 2 = AUDIO_OUTPUT_PLAYBACK
+                    # Initialize espeak: 0 = AUDIO_OUTPUT_PLAYBACK (speak_lib.h: PLAYBACK=0, RETRIEVAL=1, SYNCHRONOUS=2, SYNCH_PLAYBACK=3)
                     if hasattr(lib, "espeak_Initialize"):
-                        res = lib.espeak_Initialize(2, 0, None, 0)
+                        lib.espeak_Initialize.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_int]
+                        lib.espeak_Initialize.restype = ctypes.c_int
+
+                        res = lib.espeak_Initialize(0, 0, None, 0)
                         if res != -1:
+                            if hasattr(lib, "espeak_Synth"):
+                                lib.espeak_Synth.argtypes = [
+                                    ctypes.c_char_p,
+                                    ctypes.c_size_t,
+                                    ctypes.c_uint,
+                                    ctypes.c_int,
+                                    ctypes.c_uint,
+                                    ctypes.c_uint,
+                                    ctypes.c_void_p,
+                                    ctypes.c_void_p,
+                                ]
+                                lib.espeak_Synth.restype = ctypes.c_int
+
+                            if hasattr(lib, "espeak_SetParameter"):
+                                lib.espeak_SetParameter.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int]
+                                lib.espeak_SetParameter.restype = ctypes.c_int
+
+                            if hasattr(lib, "espeak_Cancel"):
+                                lib.espeak_Cancel.argtypes = []
+                                lib.espeak_Cancel.restype = ctypes.c_int
+
+                            if hasattr(lib, "espeak_IsPlaying"):
+                                lib.espeak_IsPlaying.argtypes = []
+                                lib.espeak_IsPlaying.restype = ctypes.c_int
+
+                            if hasattr(lib, "espeak_SetVoiceByName"):
+                                lib.espeak_SetVoiceByName.argtypes = [ctypes.c_char_p]
+                                lib.espeak_SetVoiceByName.restype = ctypes.c_int
+
                             LinuxBackend._cached_espeak_lib = lib
                             LinuxBackend._espeak_initialized = True
                             self._espeak_lib = lib
