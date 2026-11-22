@@ -18,7 +18,7 @@ class UnsupportedError(UniversalSpeechError):
     pass
 
 
-class EngineError(UniversalSpeechError):
+class EngineError(UnsupportedError):
     """Raised when an invalid or unavailable speech engine is requested."""
     pass
 

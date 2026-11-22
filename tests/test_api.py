@@ -1,6 +1,7 @@
 import unittest
 import UniversalSpeech
-from UniversalSpeech.exceptions import UnsupportedError
+from UniversalSpeech.exceptions import UnsupportedError, EngineError
+from UniversalSpeech.constants import ScreenReaderId
 
 
 class TestUniversalSpeechAPI(unittest.TestCase):
@@ -119,14 +120,27 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         if "SAPI5" in engines:
             self.speech.set_engine("SAPI5")
             self.assertEqual(self.speech.engine_used, "SAPI5")
+            # Test case-insensitivity
+            self.speech.set_engine("sapi5")
+            self.assertEqual(self.speech.engine_used, "SAPI5")
+            # Test ScreenReaderId enum
+            self.speech.set_engine(ScreenReaderId.SAPI5)
+            self.assertEqual(self.speech.engine_used, "SAPI5")
+            # Test integer ID
+            self.speech.set_engine(int(ScreenReaderId.SAPI5))
+            self.assertEqual(self.speech.engine_used, "SAPI5")
 
     def test_set_engine_unsupported(self):
         with self.assertRaises(UnsupportedError):
             self.speech.set_engine("NonExistentEngineX")
+        with self.assertRaises(EngineError):
+            self.speech.set_engine("NonExistentEngineX")
+        with self.assertRaises(EngineError):
+            self.speech.set_engine(99999)
 
     def test_set_engine_invalid_type(self):
         with self.assertRaises(TypeError):
-            self.speech.set_engine(123)  # type: ignore
+            self.speech.set_engine(["SAPI5"])  # type: ignore
 
 
 if __name__ == "__main__":
