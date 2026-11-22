@@ -3,6 +3,7 @@ Mock-based unit tests for screen reader queries, version lookups,
 scripting functions, and speech parameters under simulated environments.
 """
 import unittest
+import sys
 from unittest.mock import MagicMock, patch
 import ctypes
 from UniversalSpeech import UniversalSpeech, ScreenReaderInfo, ScreenReaderId
@@ -12,6 +13,7 @@ from UniversalSpeech.constants import (
 )
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows screen reader tests require Windows")
 class TestMockScreenReaders(unittest.TestCase):
     """Test screen reader branches and features when simulated as running."""
 

@@ -40,12 +40,17 @@ from .voices import Voice
 from .screen_readers import ScreenReaderInfo
 from .loader import Loader
 from .core import UniversalSpeech
+from .backends import BaseBackend, WindowsBackend, LinuxBackend, MacOSBackend
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 __all__ = [
-    # Core class, data models, and loader
+    # Core class, backends, data models, and loader
     "UniversalSpeech",
+    "BaseBackend",
+    "WindowsBackend",
+    "LinuxBackend",
+    "MacOSBackend",
     "Voice",
     "ScreenReaderInfo",
     "Loader",

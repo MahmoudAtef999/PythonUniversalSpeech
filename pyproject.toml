@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "UniversalSpeech"
-version = "2.0.0"
-description = "UniversalSpeech simplifies speech access in applications through a unified interface, supporting diverse methods such as screen readers, direct synthesis, and native/OS speech engines."
+version = "3.0.0"
+description = "UniversalSpeech provides a unified, cross-platform Python SDK for speech synthesis, screen readers (NVDA, JAWS, Narrator, Orca, VoiceOver), and braille displays across Windows, Linux, and macOS."
 readme = "readme.md"
 authors = [
     { name = "Mahmoud Atef", email = "mahmoud.atef.987123@gmail.com" }
@@ -15,12 +15,14 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Adaptive Technologies",
     "Topic :: Multimedia :: Sound/Audio :: Speech",
 ]
-keywords = ["speech", "accessibility", "screen reader", "jaws", "nvda"]
+keywords = ["speech", "accessibility", "screen reader", "jaws", "nvda", "orca", "voiceover", "speech-dispatcher", "espeak", "tts", "cross-platform"]
 requires-python = ">=3.7"
 dependencies = []
 
@@ -54,4 +56,3 @@ omit = ["tests/*"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
-

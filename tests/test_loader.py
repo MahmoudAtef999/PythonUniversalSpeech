@@ -6,6 +6,7 @@ from UniversalSpeech.load import Loader
 from UniversalSpeech.exceptions import DLLFileNotFoundError, PlatformError
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows DLL Loader tests require Windows")
 class TestLoader(unittest.TestCase):
     """Test DLL Loader behavior and error handling."""
 
