@@ -376,7 +376,6 @@ class LinuxBackend(BaseBackend):
         return 1 if success else 0
 
     def close(self) -> None:
-        self.stop()
         if self._last_process:
             try:
                 if self._last_process.poll() is None:

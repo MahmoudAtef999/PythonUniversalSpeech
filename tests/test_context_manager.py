@@ -17,6 +17,20 @@ class TestContextManager(unittest.TestCase):
         speech.say("Close method test")
         speech.close()
 
+    def test_stop_on_exit_default_and_custom(self):
+        # Default should be False so speech is not cut off
+        speech = UniversalSpeech()
+        self.assertFalse(speech.stop_on_exit)
+
+        speech.stop_on_exit = True
+        self.assertTrue(speech.stop_on_exit)
+
+        with UniversalSpeech(stop_on_exit=True) as s:
+            self.assertTrue(s.stop_on_exit)
+
+        with UniversalSpeech(stop_on_exit=False) as s:
+            self.assertFalse(s.stop_on_exit)
+
     def test_repr_and_str(self):
         speech = UniversalSpeech()
         r = repr(speech)

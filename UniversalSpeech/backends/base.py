@@ -48,8 +48,8 @@ class BaseBackend(ABC):
         pass
 
     def close(self) -> None:
-        """Clean up backend resources."""
-        self.stop()
+        """Clean up backend resources without abruptly stopping ongoing speech."""
+        pass
 
     def get_value(self, what: int) -> int:
         """Get integer parameter value."""

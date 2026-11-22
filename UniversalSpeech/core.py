@@ -22,14 +22,18 @@ class UniversalSpeech(BaseBackend):
     synthesis and braille displays across Windows, Linux, and macOS.
     """
 
-    def __init__(self, backend: Optional[BaseBackend] = None) -> None:
+    def __init__(self, backend: Optional[BaseBackend] = None, stop_on_exit: bool = False) -> None:
         """
         Initialize UniversalSpeech.
 
         Parameters:
             backend (Optional[BaseBackend]): Optional explicit backend instance.
                 If None, the backend is automatically selected according to the OS platform.
+            stop_on_exit (bool): Whether to stop ongoing speech when exiting a context manager
+                (`with UniversalSpeech():`). Defaults to False so ongoing speech (e.g. from
+                screen readers) is not abruptly cut off when exiting the block.
         """
+        self._stop_on_exit = stop_on_exit
         if backend is not None:
             self._backend = backend
         elif sys.platform == "win32":
@@ -43,6 +47,15 @@ class UniversalSpeech(BaseBackend):
             self._backend = MacOSBackend()
         else:
             raise PlatformError(f"Unsupported operating system: {sys.platform}")
+
+    @property
+    def stop_on_exit(self) -> bool:
+        """Whether speech is stopped on context manager exit."""
+        return self._stop_on_exit
+
+    @stop_on_exit.setter
+    def stop_on_exit(self, value: bool) -> None:
+        self._stop_on_exit = bool(value)
 
     @property
     def backend(self) -> BaseBackend:
@@ -64,11 +77,13 @@ class UniversalSpeech(BaseBackend):
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Support context manager exit by stopping any ongoing speech."""
+        """Support context manager exit without abruptly silencing ongoing speech unless stop_on_exit=True."""
+        if self._stop_on_exit:
+            self.stop()
         self.close()
 
     def close(self) -> None:
-        """Clean up resources and stop speech."""
+        """Clean up resources without forcibly stopping active speech."""
         self._backend.close()
 
     def __repr__(self) -> str:

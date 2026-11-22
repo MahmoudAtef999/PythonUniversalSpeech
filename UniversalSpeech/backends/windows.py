@@ -62,7 +62,7 @@ class WindowsBackend(BaseBackend):
         return int(self.__uspeech.speechStop())
 
     def close(self) -> None:
-        self.stop()
+        pass
 
     def get_value(self, what: int) -> int:
         return int(self.__uspeech.speechGetValue(what))
