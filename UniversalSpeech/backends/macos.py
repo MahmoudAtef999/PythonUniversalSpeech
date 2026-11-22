@@ -148,8 +148,9 @@ class MacOSBackend(BaseBackend):
                     # Escape quotes and backslashes for AppleScript string literal
                     escaped = msg.replace("\\", "\\\\").replace('"', '\\"')
                     script = f'tell application "VoiceOver" to output "{escaped}"'
-                    subprocess.run(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.0)
-                    return 1
+                    res = subprocess.run(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2.0)
+                    if res.returncode == 0:
+                        return 1
                 except Exception:
                     pass
 
@@ -180,8 +181,9 @@ class MacOSBackend(BaseBackend):
         if self.voiceover_is_available() and shutil.which("osascript"):
             try:
                 script = 'tell application "VoiceOver" to output ""'
-                subprocess.run(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
-                success = True
+                res = subprocess.run(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
+                if res.returncode == 0:
+                    success = True
             except Exception:
                 pass
 

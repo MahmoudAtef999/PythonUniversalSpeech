@@ -23,6 +23,7 @@ class TestMacOSBackend(unittest.TestCase):
              patch("subprocess.run") as mock_run, \
              patch.object(MacOSBackend, "voiceover_is_available", return_value=True):
 
+            mock_run.return_value = MagicMock(returncode=0)
             backend = MacOSBackend()
             self.assertTrue(backend.voiceover_is_available())
             self.assertEqual(backend.current_screen_reader_name, "VoiceOver")
@@ -34,6 +35,25 @@ class TestMacOSBackend(unittest.TestCase):
 
             # Test stop
             self.assertEqual(backend.stop(), 1)
+
+    def test_voiceover_failure_falls_back_to_say(self):
+        """When VoiceOver AppleScript returns non-zero code, fall back to /say binary."""
+        with patch("shutil.which", side_effect=lambda x: f"/usr/bin/{x}"), \
+             patch("subprocess.run") as mock_run, \
+             patch("subprocess.Popen") as mock_popen, \
+             patch.object(MacOSBackend, "voiceover_is_available", return_value=True):
+
+            # Simulate osascript failing (e.g. AppleScript permission denied)
+            mock_run.return_value = MagicMock(returncode=1)
+            mock_process = MagicMock()
+            mock_process.poll.return_value = None
+            mock_popen.return_value = mock_process
+
+            backend = MacOSBackend()
+            res = backend.say("Testing fallback when VoiceOver AppleScript fails")
+            self.assertEqual(res, 1)
+            # Verify say was invoked via Popen fallback
+            mock_popen.assert_called_once()
 
     def test_say_voices_parsing_and_selection(self):
         """Test parsing `say -v '?'` output into Voice objects and setting active voice."""
