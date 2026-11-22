@@ -106,11 +106,17 @@ def main(args: Optional[list] = None) -> int:
             else:
                 speech.set_voice(parsed.voice)
 
-        if parsed.rate is not None and speech.rate_supported:
-            speech.rate = parsed.rate
+        if parsed.rate is not None:
+            if speech.rate_supported:
+                speech.rate = parsed.rate
+            else:
+                print(f"Warning: Speech rate control is not supported by engine '{speech.engine_used}'.", file=sys.stderr)
 
-        if parsed.volume is not None and speech.volume_supported:
-            speech.volume = parsed.volume
+        if parsed.volume is not None:
+            if speech.volume_supported:
+                speech.volume = parsed.volume
+            else:
+                print(f"Warning: Speech volume control is not supported by engine '{speech.engine_used}'.", file=sys.stderr)
 
         if parsed.diagnostics:
             print(speech.diagnostics_summary())
@@ -155,10 +161,48 @@ def main(args: Optional[list] = None) -> int:
             return 0
 
         # Read from piped stdin if no message argument was provided
-        if not parsed.message and not sys.stdin.isatty():
-            piped_msg = sys.stdin.read().strip()
-            if piped_msg:
-                parsed.message = piped_msg
+        if not parsed.message and sys.stdin is not None:
+            try:
+                is_pipe = False
+                try:
+                    is_pipe = not sys.stdin.isatty()
+                except Exception:
+                    is_pipe = False
+
+                if is_pipe:
+                    has_data = False
+                    if sys.platform == "win32":
+                        try:
+                            import msvcrt
+                            # Check if standard input has keyboard or pipe data ready
+                            # PeekNamedPipe checks if there is data on pipe without blocking
+                            import ctypes
+                            from ctypes import wintypes
+                            kernel32 = ctypes.windll.kernel32
+                            STD_INPUT_HANDLE = -10
+                            h_stdin = kernel32.GetStdHandle(STD_INPUT_HANDLE)
+                            avail = wintypes.DWORD(0)
+                            if kernel32.PeekNamedPipe(h_stdin, None, 0, None, ctypes.byref(avail), None):
+                                has_data = avail.value > 0
+                            elif hasattr(sys.stdin, "tell"):
+                                # Fallback for StringIO / custom mocks in tests
+                                has_data = True
+                        except Exception:
+                            has_data = True
+                    else:
+                        try:
+                            import select
+                            r, _, _ = select.select([sys.stdin], [], [], 0.0)
+                            has_data = bool(r)
+                        except Exception:
+                            has_data = True
+
+                    if has_data:
+                        piped_msg = sys.stdin.read().strip()
+                        if piped_msg:
+                            parsed.message = piped_msg
+            except Exception:
+                pass
 
         if parsed.message:
             interrupt = not parsed.no_interrupt

@@ -443,15 +443,36 @@ class BaseBackend(ABC):
             f"Platform:             {diag.get('platform', 'Unknown')}",
             f"Backend:              {self.__class__.__name__}",
             f"Active Engine:        {diag.get('engine_used') or 'None'}",
-            f"Active Screen Reader: {diag.get('active_screen_reader_name') or 'None'} (ID: {diag.get('active_screen_reader_id', 0)})",
+            f"Active Screen Reader: {diag.get('active_screen_reader_name') or 'None'} (ID: {diag.get('active_screen_reader_id', -1)})",
             "",
-            "--- Engine Capabilities & Parameters ---",
+            "--- Supported Screen Readers ---",
         ]
+        for r in diag.get("screen_readers", []):
+            ver_str = f" (v{r['version']})" if r.get("version") else ""
+            status = "Active / Running" if r.get("available") else ("Detected" if r.get("version") else "Not Detected")
+            lines.append(f"  [{r['id']}] {r['name']:<18}: {status}{ver_str}")
+
+        lines.append("")
+        lines.append("--- Speech Engines ---")
+        for name, details in diag.get("engines", {}).items():
+            status = "Available" if details.get("available") else "Unavailable"
+            lines.append(f"  [{details.get('id', -1)}] {name:<18}: {status}")
+
+        lines.append("")
+        lines.append("--- Engine Capabilities & Parameters ---")
         caps = diag.get("capabilities", {})
         params = diag.get("parameters", {})
         lines.append(f"  Rate:       {'Supported' if caps.get('rate') else 'Unsupported'}" + (f" (Current: {params.get('rate')}, Range: {params.get('rate_range')})" if caps.get('rate') else ""))
         lines.append(f"  Volume:     {'Supported' if caps.get('volume') else 'Unsupported'}" + (f" (Current: {params.get('volume')}, Range: {params.get('volume_range')})" if caps.get('volume') else ""))
         lines.append(f"  Pitch:      {'Supported' if caps.get('pitch') else 'Unsupported'}" + (f" (Current: {params.get('pitch')}, Range: {params.get('pitch_range')})" if caps.get('pitch') else ""))
         lines.append(f"  Inflection: {'Supported' if caps.get('inflection') else 'Unsupported'}" + (f" (Current: {params.get('inflection')}, Range: {params.get('inflection_range')})" if caps.get('inflection') else ""))
+        lines.append(f"  Pause/Wait: Pause={caps.get('pause')}, Wait={caps.get('wait')}, Busy={caps.get('busy')}")
+
+        lines.append("")
+        lines.append("--- Voices ---")
+        lines.append(f"  Voice Support:  {caps.get('voices')}")
+        lines.append(f"  Total Voices:   {diag.get('voices_count', 0)}")
+        active_voice = diag.get("active_voice")
+        lines.append(f"  Active Voice:   {active_voice['name'] if active_voice else 'None'}")
         lines.append("==================================================")
         return "\n".join(lines)

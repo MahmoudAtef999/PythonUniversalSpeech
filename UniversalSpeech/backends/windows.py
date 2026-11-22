@@ -652,46 +652,5 @@ class WindowsBackend(BaseBackend):
             "voices_count": len(installed_voices),
         }
 
-    def diagnostics_summary(self) -> str:
-        diag = self.get_diagnostics()
-        lines = [
-            "==================================================",
-            "        UniversalSpeech Diagnostics Report        ",
-            "==================================================",
-            f"Platform:             {diag['platform']}",
-            f"Active Engine:        {diag['engine_used'] or 'None'}",
-            f"Active Screen Reader: {diag['active_screen_reader_name'] or 'None'} (ID: {diag['active_screen_reader_id']})",
-            "",
-            "--- Supported Screen Readers ---",
-        ]
-        for r in diag["screen_readers"]:
-            ver_str = f" (v{r['version']})" if r["version"] else ""
-            status = "Active / Running" if r["available"] else ("Detected" if r["version"] else "Not Detected")
-            lines.append(f"  [{r['id']}] {r['name']:<18}: {status}{ver_str}")
-
-        lines.append("")
-        lines.append("--- Speech Engines ---")
-        for name, details in diag["engines"].items():
-            status = "Available" if details["available"] else "Unavailable"
-            lines.append(f"  [{details['id']}] {name:<18}: {status}")
-
-        lines.append("")
-        lines.append("--- Engine Capabilities & Parameters ---")
-        caps = diag["capabilities"]
-        params = diag["parameters"]
-        lines.append(f"  Rate:       {'Supported' if caps['rate'] else 'Unsupported'}" + (f" (Current: {params['rate']}, Range: {params['rate_range']})" if caps['rate'] else ""))
-        lines.append(f"  Volume:     {'Supported' if caps['volume'] else 'Unsupported'}" + (f" (Current: {params['volume']}, Range: {params['volume_range']})" if caps['volume'] else ""))
-        lines.append(f"  Pitch:      {'Supported' if caps['pitch'] else 'Unsupported'}" + (f" (Current: {params['pitch']}, Range: {params['pitch_range']})" if caps['pitch'] else ""))
-        lines.append(f"  Inflection: {'Supported' if caps['inflection'] else 'Unsupported'}" + (f" (Current: {params['inflection']}, Range: {params['inflection_range']})" if caps['inflection'] else ""))
-        lines.append(f"  Pause/Wait: Pause={caps['pause']}, Wait={caps['wait']}, Busy={caps['busy']}")
-
-        lines.append("")
-        lines.append("--- Voices ---")
-        lines.append(f"  Voice Support:  {caps['voices']}")
-        lines.append(f"  Total Voices:   {diag['voices_count']}")
-        lines.append(f"  Active Voice:   {diag['active_voice']['name'] if diag['active_voice'] else 'None'}")
-        lines.append("==================================================")
-        return "\n".join(lines)
-
 
 __all__ = ["WindowsBackend"]

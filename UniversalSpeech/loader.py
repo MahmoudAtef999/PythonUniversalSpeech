@@ -68,7 +68,8 @@ class Loader:
         """
         if sys.platform != "win32":
             raise PlatformError(
-                "UniversalSpeech currently only supports Windows. Cross-platform support is planned for v3."
+                f"Windows UniversalSpeech DLL loader is not supported on {sys.platform}. "
+                "UniversalSpeech automatically uses native backends on Linux and macOS."
             )
 
         if not self._files_check():
