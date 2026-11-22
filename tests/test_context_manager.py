@@ -1,6 +1,7 @@
 """
 Unit tests for context manager, resource cleanup, and string representation.
 """
+import copy
 import unittest
 from UniversalSpeech import UniversalSpeech
 
@@ -38,6 +39,21 @@ class TestContextManager(unittest.TestCase):
         self.assertTrue(r.startswith("<UniversalSpeech"))
         self.assertTrue(s.startswith("UniversalSpeech("))
         self.assertIn("engine=", r)
+
+    def test_copy_and_getattr_no_recursion(self):
+        speech = UniversalSpeech()
+        # Verify copy.copy does not raise RecursionError
+        copied = copy.copy(speech)
+        self.assertIsInstance(copied, UniversalSpeech)
+
+        # Verify accessing non-existent private attribute raises AttributeError without recursion
+        with self.assertRaises(AttributeError):
+            _ = speech._non_existent
+
+        # Verify an instance without _backend raises AttributeError without recursion
+        uninitialized = UniversalSpeech.__new__(UniversalSpeech)
+        with self.assertRaises(AttributeError):
+            _ = uninitialized.any_attribute
 
 
 if __name__ == "__main__":

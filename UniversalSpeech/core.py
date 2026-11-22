@@ -95,7 +95,12 @@ class UniversalSpeech(BaseBackend):
 
     def __getattr__(self, name: str) -> Any:
         """Forward any attribute not explicitly declared to the underlying backend."""
-        return getattr(self._backend, name)
+        if name == "_backend" or name.startswith("_"):
+            raise AttributeError(name)
+        backend = self.__dict__.get("_backend")
+        if backend is None:
+            raise AttributeError(f"'UniversalSpeech' object has no attribute '{name}'")
+        return getattr(backend, name)
 
     def say(self, msg: str, interrupt: bool = True) -> int:
         return self._backend.say(msg, interrupt=interrupt)
