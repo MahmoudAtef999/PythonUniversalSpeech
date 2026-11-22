@@ -185,19 +185,12 @@ class MacOSBackend(BaseBackend):
             except Exception:
                 pass
 
-        # Stop say process
+        # Stop say process spawned by this instance
         if self._last_process and self._last_process.poll() is None:
             try:
                 self._last_process.terminate()
                 self._last_process.wait(timeout=1.0)
                 self._last_process = None
-                success = True
-            except Exception:
-                pass
-
-        if shutil.which("killall"):
-            try:
-                subprocess.run(["killall", "say"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
                 success = True
             except Exception:
                 pass
