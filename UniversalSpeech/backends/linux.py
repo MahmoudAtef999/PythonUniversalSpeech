@@ -23,6 +23,10 @@ class _SSIPSocketClient:
     def __init__(self, socket_path: Optional[str] = None, port: Optional[int] = None) -> None:
         self.sock: Optional[socket.socket] = None
         self._connected = False
+        self._recv_buffer = ""
+        self._current_rate: Optional[int] = None
+        self._current_volume: Optional[int] = None
+        self._current_pitch: Optional[int] = None
         self._connect(socket_path, port)
 
     def _connect(self, socket_path: Optional[str], port: Optional[int]) -> None:
@@ -61,29 +65,58 @@ class _SSIPSocketClient:
             return None
 
     def _read_response(self) -> Optional[str]:
+        """
+        Read complete SSIP response, handling multi-line continuation responses (NNN-...)
+        until the final status line (NNN ...) is received.
+        """
         if not self.sock:
             return None
         try:
-            data = b""
+            lines: List[str] = []
             while True:
-                chunk = self.sock.recv(1024)
-                if not chunk:
-                    break
-                data += chunk
-                if b"\r\n" in data:
-                    break
-            return data.decode("utf-8", errors="replace").strip()
+                while "\r\n" not in self._recv_buffer:
+                    chunk = self.sock.recv(1024)
+                    if not chunk:
+                        return lines[-1] if lines else None
+                    self._recv_buffer += chunk.decode("utf-8", errors="replace")
+
+                line, self._recv_buffer = self._recv_buffer.split("\r\n", 1)
+                line = line.strip()
+                if line:
+                    lines.append(line)
+                    # SSIP protocol: 'NNN ' or exactly 3 digits marks the final line
+                    if len(line) >= 3 and line[:3].isdigit():
+                        if len(line) == 3 or line[3] == " ":
+                            break
+            return lines[-1] if lines else None
         except Exception:
+            self.close()
             return None
 
     def speak(self, text: str) -> bool:
         if not self._connected or not self.sock:
             return False
         try:
+            # 1. Initiate speech transaction
             self.sock.sendall(b"SPEAK\r\n")
-            # In SSIP, a single dot on a line terminates speech
-            safe_text = text.replace("\r", "").replace("\n.", "\n..")
-            self.sock.sendall(safe_text.encode("utf-8") + b"\r\n.\r\n")
+            ack = self._read_response()
+            if not ack or not ack.startswith("230"):
+                return False
+
+            # 2. Dot-escape every line starting with '.' and ensure \r\n endings
+            normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+            escaped_lines: List[str] = []
+            for line in normalized.split("\n"):
+                if line.startswith("."):
+                    escaped_lines.append("." + line)
+                else:
+                    escaped_lines.append(line)
+            safe_body = "\r\n".join(escaped_lines)
+
+            # 3. Transmit text and end-of-data marker (\r\n.\r\n)
+            self.sock.sendall(safe_body.encode("utf-8") + b"\r\n.\r\n")
+
+            # 4. Read final queued response (e.g. 225 OK MESSAGE QUEUED)
             resp = self._read_response()
             return bool(resp and resp.startswith("2"))
         except Exception:
@@ -99,19 +132,25 @@ class _SSIPSocketClient:
         return bool(resp and resp.startswith("2"))
 
     def set_rate(self, rate: int) -> None:
-        # SSIP rate is -100 to 100
-        val = max(-100, min(100, rate))
-        self._send_command(f"SET self RATE {val}")
+        # SSIP rate is -100 to 100; avoid redundant network roundtrips if unchanged
+        val = max(-100, min(100, int(rate)))
+        if self._current_rate != val:
+            self._send_command(f"SET self RATE {val}")
+            self._current_rate = val
 
     def set_volume(self, volume: int) -> None:
-        # SSIP volume is -100 to 100
-        val = max(-100, min(100, volume))
-        self._send_command(f"SET self VOLUME {val}")
+        # SSIP volume is -100 to 100; avoid redundant network roundtrips if unchanged
+        val = max(-100, min(100, int(volume)))
+        if self._current_volume != val:
+            self._send_command(f"SET self VOLUME {val}")
+            self._current_volume = val
 
     def set_pitch(self, pitch: int) -> None:
-        # SSIP pitch is -100 to 100
-        val = max(-100, min(100, pitch))
-        self._send_command(f"SET self PITCH {val}")
+        # SSIP pitch is -100 to 100; avoid redundant network roundtrips if unchanged
+        val = max(-100, min(100, int(pitch)))
+        if self._current_pitch != val:
+            self._send_command(f"SET self PITCH {val}")
+            self._current_pitch = val
 
     def close(self) -> None:
         if self.sock:
@@ -121,6 +160,10 @@ class _SSIPSocketClient:
                 pass
             self.sock = None
         self._connected = False
+        self._recv_buffer = ""
+        self._current_rate = None
+        self._current_volume = None
+        self._current_pitch = None
 
     @property
     def is_connected(self) -> bool:
