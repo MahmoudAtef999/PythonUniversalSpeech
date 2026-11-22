@@ -1,9 +1,11 @@
+import sys
 import unittest
 import UniversalSpeech
 from UniversalSpeech.exceptions import UnsupportedError, EngineError
 from UniversalSpeech.constants import ScreenReaderId
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows UniversalSpeech API tests require Windows DLL")
 class TestUniversalSpeechAPI(unittest.TestCase):
     """Test UniversalSpeech Public API."""
 

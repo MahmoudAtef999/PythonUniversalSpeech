@@ -1,10 +1,12 @@
 """
 Unit tests for screen reader queries and availability checks.
 """
+import sys
 import unittest
 from UniversalSpeech import UniversalSpeech, ScreenReaderInfo, ScreenReaderId
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows screen reader tests require Windows DLL")
 class TestScreenReaders(unittest.TestCase):
     def setUp(self):
         self.speech = UniversalSpeech()

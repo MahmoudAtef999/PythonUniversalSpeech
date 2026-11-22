@@ -1,10 +1,12 @@
 """
 Unit tests for playback and flow control methods in UniversalSpeech.
 """
+import sys
 import unittest
 from UniversalSpeech import UniversalSpeech, UnsupportedError
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows playback control tests require Windows DLL")
 class TestPlaybackControl(unittest.TestCase):
     def setUp(self):
         self.speech = UniversalSpeech()

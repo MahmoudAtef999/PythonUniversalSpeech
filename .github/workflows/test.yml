@@ -21,12 +21,15 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         python-version:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+        include:
+          - os: windows-latest
+            python-version: "3.8"
+          - os: windows-latest
+            python-version: "3.9"
 
     defaults:
       run:
@@ -72,6 +75,6 @@ jobs:
 
       - name: Test installed wheel package
         run: |
-          $whl = (Get-Item dist/*.whl).FullName
+          $whl = (Get-ChildItem dist/*.whl | Select-Object -First 1).FullName
           python -m pip install $whl
           python -c "import UniversalSpeech; print('Installed UniversalSpeech version:', UniversalSpeech.__version__)"

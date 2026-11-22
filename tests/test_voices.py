@@ -1,10 +1,12 @@
 """
 Unit tests for Voice management in UniversalSpeech.
 """
+import sys
 import unittest
 from UniversalSpeech import UniversalSpeech, Voice, VoiceError
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows voice tests require Windows DLL")
 class TestVoices(unittest.TestCase):
     def setUp(self):
         self.speech = UniversalSpeech()

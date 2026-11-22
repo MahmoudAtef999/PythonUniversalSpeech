@@ -1,8 +1,10 @@
 import os
+import sys
 import unittest
 import UniversalSpeech
 
 
+@unittest.skipUnless(sys.platform == "win32", "Windows ZDSR removed tests require Windows DLL")
 class TestZDSRRemoved(unittest.TestCase):
     """Test that ZDSRAPI.dll is removed and the library functions cleanly without it."""
 
