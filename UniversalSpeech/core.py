@@ -370,6 +370,12 @@ class UniversalSpeech:
     def inflection_supported(self) -> bool:
         return self.get_value(INFLECTION_SUPPORTED) != 0
 
+    def get_rate(self) -> int:
+        """Get the current speech rate."""
+        if not self.rate_supported:
+            raise UnsupportedError("Rate query is not supported with the current engine.")
+        return self.get_value(RATE)
+
     def set_rate(self, value: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
         """
         Set the speech rate and, optionally, the minimum and maximum rates.
@@ -392,6 +398,31 @@ class UniversalSpeech:
 
         if max_rate is not None:
             self.set_value(RATE_MAX, max_rate)
+
+    @property
+    def rate(self) -> int:
+        """Current speech rate."""
+        return self.get_rate()
+
+    @rate.setter
+    def rate(self, value: int) -> None:
+        self.set_rate(value)
+
+    @property
+    def rate_min(self) -> int:
+        """Minimum speech rate for the current engine."""
+        return self.get_value(RATE_MIN)
+
+    @property
+    def rate_max(self) -> int:
+        """Maximum speech rate for the current engine."""
+        return self.get_value(RATE_MAX)
+
+    def get_volume(self) -> int:
+        """Get the current speech volume."""
+        if not self.volume_supported:
+            raise UnsupportedError("Volume query is not supported with the current engine.")
+        return self.get_value(VOLUME)
 
     def set_volume(self, value: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
         """
@@ -416,6 +447,31 @@ class UniversalSpeech:
         if max_volume is not None:
             self.set_value(VOLUME_MAX, max_volume)
 
+    @property
+    def volume(self) -> int:
+        """Current speech volume."""
+        return self.get_volume()
+
+    @volume.setter
+    def volume(self, value: int) -> None:
+        self.set_volume(value)
+
+    @property
+    def volume_min(self) -> int:
+        """Minimum speech volume for the current engine."""
+        return self.get_value(VOLUME_MIN)
+
+    @property
+    def volume_max(self) -> int:
+        """Maximum speech volume for the current engine."""
+        return self.get_value(VOLUME_MAX)
+
+    def get_pitch(self) -> int:
+        """Get the current speech pitch."""
+        if not self.pitch_supported:
+            raise UnsupportedError("Pitch query is not supported with the current engine.")
+        return self.get_value(PITCH)
+
     def set_pitch(self, value: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
         """
         Set the speech pitch and, optionally, the minimum and maximum pitch.
@@ -439,6 +495,31 @@ class UniversalSpeech:
         if max_pitch is not None:
             self.set_value(PITCH_MAX, max_pitch)
 
+    @property
+    def pitch(self) -> int:
+        """Current speech pitch."""
+        return self.get_pitch()
+
+    @pitch.setter
+    def pitch(self, value: int) -> None:
+        self.set_pitch(value)
+
+    @property
+    def pitch_min(self) -> int:
+        """Minimum speech pitch for the current engine."""
+        return self.get_value(PITCH_MIN)
+
+    @property
+    def pitch_max(self) -> int:
+        """Maximum speech pitch for the current engine."""
+        return self.get_value(PITCH_MAX)
+
+    def get_inflection(self) -> int:
+        """Get the current speech inflection."""
+        if not self.inflection_supported:
+            raise UnsupportedError("Inflection query is not supported with the current engine.")
+        return self.get_value(INFLECTION)
+
     def set_inflection(self, value: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
         """
         Set the speech inflection and, optionally, the minimum and maximum inflection.
@@ -461,6 +542,25 @@ class UniversalSpeech:
 
         if max_inflection is not None:
             self.set_value(INFLECTION_MAX, max_inflection)
+
+    @property
+    def inflection(self) -> int:
+        """Current speech inflection."""
+        return self.get_inflection()
+
+    @inflection.setter
+    def inflection(self, value: int) -> None:
+        self.set_inflection(value)
+
+    @property
+    def inflection_min(self) -> int:
+        """Minimum speech inflection for the current engine."""
+        return self.get_value(INFLECTION_MIN)
+
+    @property
+    def inflection_max(self) -> int:
+        """Maximum speech inflection for the current engine."""
+        return self.get_value(INFLECTION_MAX)
 
     # -------------------------------------------------------------------------
     # Screen Reader Information & Direct Checks

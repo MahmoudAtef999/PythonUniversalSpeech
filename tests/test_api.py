@@ -81,39 +81,63 @@ class TestUniversalSpeechAPI(unittest.TestCase):
 
     def test_volume_control(self):
         if self.speech.volume_supported:
-            orig = self.speech.get_value(UniversalSpeech.VOLUME)
+            orig = self.speech.get_volume()
+            self.assertEqual(orig, self.speech.volume)
+            self.assertIsInstance(self.speech.volume_min, int)
+            self.assertIsInstance(self.speech.volume_max, int)
             self.speech.set_volume(80, min_volume=0, max_volume=100)
-            self.speech.set_volume(orig)
+            self.assertEqual(self.speech.get_volume(), 80)
+            self.speech.volume = orig
+            self.assertEqual(self.speech.volume, orig)
         else:
             with self.assertRaises(UnsupportedError):
                 self.speech.set_volume(50)
+            with self.assertRaises(UnsupportedError):
+                self.speech.get_volume()
 
     def test_rate_control(self):
         if self.speech.rate_supported:
-            orig = self.speech.get_value(UniversalSpeech.RATE)
+            orig = self.speech.get_rate()
+            self.assertEqual(orig, self.speech.rate)
+            self.assertIsInstance(self.speech.rate_min, int)
+            self.assertIsInstance(self.speech.rate_max, int)
             self.speech.set_rate(50, min_rate=0, max_rate=100)
-            self.speech.set_rate(orig)
+            self.assertEqual(self.speech.get_rate(), 50)
+            self.speech.rate = orig
+            self.assertEqual(self.speech.rate, orig)
         else:
             with self.assertRaises(UnsupportedError):
                 self.speech.set_rate(50)
+            with self.assertRaises(UnsupportedError):
+                self.speech.get_rate()
 
     def test_pitch_control(self):
         if self.speech.pitch_supported:
-            orig = self.speech.get_value(UniversalSpeech.PITCH)
+            orig = self.speech.get_pitch()
+            self.assertEqual(orig, self.speech.pitch)
+            self.assertIsInstance(self.speech.pitch_min, int)
+            self.assertIsInstance(self.speech.pitch_max, int)
             self.speech.set_pitch(50)
-            self.speech.set_pitch(orig)
+            self.speech.pitch = orig
         else:
             with self.assertRaises(UnsupportedError):
                 self.speech.set_pitch(50)
+            with self.assertRaises(UnsupportedError):
+                self.speech.get_pitch()
 
     def test_inflection_control(self):
         if self.speech.inflection_supported:
-            orig = self.speech.get_value(UniversalSpeech.INFLECTION)
+            orig = self.speech.get_inflection()
+            self.assertEqual(orig, self.speech.inflection)
+            self.assertIsInstance(self.speech.inflection_min, int)
+            self.assertIsInstance(self.speech.inflection_max, int)
             self.speech.set_inflection(50)
-            self.speech.set_inflection(orig)
+            self.speech.inflection = orig
         else:
             with self.assertRaises(UnsupportedError):
                 self.speech.set_inflection(50)
+            with self.assertRaises(UnsupportedError):
+                self.speech.get_inflection()
 
     def test_set_engine_valid(self):
         engines = self.speech.get_engines()
