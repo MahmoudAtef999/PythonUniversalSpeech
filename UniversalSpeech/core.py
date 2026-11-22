@@ -2,7 +2,7 @@
 Core UniversalSpeech class and interface.
 """
 import ctypes
-from typing import Optional, Dict, Any, Union, List
+from typing import Optional, Dict, Any, Union, List, Tuple
 from .loader import Loader
 from .exceptions import EngineError, UnsupportedError, VoiceError
 from .voices import Voice
@@ -461,6 +461,11 @@ class UniversalSpeech:
         """Maximum speech rate for the current engine."""
         return self.get_value(RATE_MAX)
 
+    @property
+    def rate_range(self) -> Tuple[int, int]:
+        """Tuple of (min_rate, max_rate) for the current speech engine."""
+        return (self.rate_min, self.rate_max)
+
     def get_volume(self) -> int:
         """Get the current speech volume."""
         if not self.volume_supported:
@@ -508,6 +513,11 @@ class UniversalSpeech:
     def volume_max(self) -> int:
         """Maximum speech volume for the current engine."""
         return self.get_value(VOLUME_MAX)
+
+    @property
+    def volume_range(self) -> Tuple[int, int]:
+        """Tuple of (min_volume, max_volume) for the current speech engine."""
+        return (self.volume_min, self.volume_max)
 
     def get_pitch(self) -> int:
         """Get the current speech pitch."""
@@ -557,6 +567,11 @@ class UniversalSpeech:
         """Maximum speech pitch for the current engine."""
         return self.get_value(PITCH_MAX)
 
+    @property
+    def pitch_range(self) -> Tuple[int, int]:
+        """Tuple of (min_pitch, max_pitch) for the current speech engine."""
+        return (self.pitch_min, self.pitch_max)
+
     def get_inflection(self) -> int:
         """Get the current speech inflection."""
         if not self.inflection_supported:
@@ -604,6 +619,11 @@ class UniversalSpeech:
     def inflection_max(self) -> int:
         """Maximum speech inflection for the current engine."""
         return self.get_value(INFLECTION_MAX)
+
+    @property
+    def inflection_range(self) -> Tuple[int, int]:
+        """Tuple of (min_inflection, max_inflection) for the current speech engine."""
+        return (self.inflection_min, self.inflection_max)
 
     # -------------------------------------------------------------------------
     # Screen Reader Information & Direct Checks

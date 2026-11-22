@@ -87,6 +87,7 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             self.assertEqual(orig, self.speech.volume)
             self.assertIsInstance(self.speech.volume_min, int)
             self.assertIsInstance(self.speech.volume_max, int)
+            self.assertEqual(self.speech.volume_range, (self.speech.volume_min, self.speech.volume_max))
             self.speech.set_volume(80, min_volume=0, max_volume=100)
             self.assertEqual(self.speech.get_volume(), 80)
             self.speech.volume = orig
@@ -103,6 +104,7 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             self.assertEqual(orig, self.speech.rate)
             self.assertIsInstance(self.speech.rate_min, int)
             self.assertIsInstance(self.speech.rate_max, int)
+            self.assertEqual(self.speech.rate_range, (self.speech.rate_min, self.speech.rate_max))
             self.speech.set_rate(50, min_rate=0, max_rate=100)
             self.assertEqual(self.speech.get_rate(), 50)
             self.speech.rate = orig
@@ -119,6 +121,7 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             self.assertEqual(orig, self.speech.pitch)
             self.assertIsInstance(self.speech.pitch_min, int)
             self.assertIsInstance(self.speech.pitch_max, int)
+            self.assertEqual(self.speech.pitch_range, (self.speech.pitch_min, self.speech.pitch_max))
             self.speech.set_pitch(50)
             self.speech.pitch = orig
         else:
@@ -133,6 +136,7 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             self.assertEqual(orig, self.speech.inflection)
             self.assertIsInstance(self.speech.inflection_min, int)
             self.assertIsInstance(self.speech.inflection_max, int)
+            self.assertEqual(self.speech.inflection_range, (self.speech.inflection_min, self.speech.inflection_max))
             self.speech.set_inflection(50)
             self.speech.inflection = orig
         else:
