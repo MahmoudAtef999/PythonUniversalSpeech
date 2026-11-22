@@ -357,8 +357,8 @@ class BaseBackend(ABC):
 
     @property
     def current_screen_reader_id(self) -> int:
-        """ID of the active screen reader."""
-        return 0
+        """ID of the active screen reader (-1 if none active)."""
+        return -1
 
     def get_supported_screen_readers(self) -> List[str]:
         """List names of supported screen readers."""

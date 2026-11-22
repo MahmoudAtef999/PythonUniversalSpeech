@@ -137,8 +137,10 @@ class TestLinuxBackend(unittest.TestCase):
     def test_universal_speech_with_linux_backend(self):
         """Verify UniversalSpeech facade properly delegates to LinuxBackend."""
         with patch.object(LinuxBackend, "_init_speechd"), \
-             patch.object(LinuxBackend, "_init_espeak"):
+             patch.object(LinuxBackend, "_init_espeak"), \
+             patch.object(LinuxBackend, "orca_is_available", return_value=False):
             linux_backend = LinuxBackend()
+            self.assertEqual(linux_backend.current_screen_reader_id, -1)
             speech = UniversalSpeech(backend=linux_backend)
 
             self.assertEqual(speech.backend, linux_backend)

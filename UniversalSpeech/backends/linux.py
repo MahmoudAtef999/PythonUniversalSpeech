@@ -4,6 +4,7 @@ eSpeak/eSpeak-ng (library/cli), and Orca detection with zero external dependenci
 """
 import os
 import sys
+import time
 import socket
 import shutil
 import subprocess
@@ -375,7 +376,7 @@ class LinuxBackend(BaseBackend):
                     spd_pitch = int((self._pitch - 50) * 2)
                     spd_vol = int((self._volume - 50) * 2)
                     self._last_process = subprocess.Popen(
-                        ["spd-say", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
+                        ["spd-say", "-w", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL,
                     )
@@ -464,18 +465,47 @@ class LinuxBackend(BaseBackend):
             self._ssip_client = None
 
     @property
+    def is_busy(self) -> bool:
+        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
+            try:
+                return bool(self._espeak_lib.espeak_IsPlaying())
+            except Exception:
+                pass
+        if self._last_process:
+            return self._last_process.poll() is None
+        return False
+
+    @property
+    def busy_supported(self) -> bool:
+        return bool(self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying")) or bool(self._last_process)
+
+    @property
     def wait_supported(self) -> bool:
+        if self._active_engine_name == "speech-dispatcher" and self._ssip_client and self._ssip_client.is_connected:
+            return False
         return True
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
+        if not self.wait_supported and not self.busy_supported:
+            return False
+        start_time = time.time()
+        timeout_sec = timeout_ms / 1000.0 if timeout_ms is not None else None
+
         if self._last_process:
             try:
-                timeout = timeout_ms / 1000.0 if timeout_ms is not None else None
-                self._last_process.wait(timeout=timeout)
+                self._last_process.wait(timeout=timeout_sec)
                 self._last_process = None
                 return True
             except Exception:
                 return False
+
+        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
+            while self.is_busy:
+                if timeout_sec is not None and (time.time() - start_time) >= timeout_sec:
+                    return False
+                time.sleep(0.02)
+            return not self.is_busy
+
         return True
 
     # Parameters
@@ -567,7 +597,7 @@ class LinuxBackend(BaseBackend):
     def current_screen_reader_id(self) -> int:
         if self.orca_is_available():
             return 100
-        return 0
+        return -1
 
     def get_supported_screen_readers(self) -> List[str]:
         return ["Orca"]
