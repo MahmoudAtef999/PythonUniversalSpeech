@@ -183,6 +183,24 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.speech.set_engine(["SAPI5"])  # type: ignore
 
+    def test_get_diagnostics(self):
+        diag = self.speech.get_diagnostics()
+        self.assertIsInstance(diag, dict)
+        self.assertIn("platform", diag)
+        self.assertIn("engine_used", diag)
+        self.assertIn("active_screen_reader_name", diag)
+        self.assertIn("screen_readers", diag)
+        self.assertIn("engines", diag)
+        self.assertIn("capabilities", diag)
+        self.assertIn("parameters", diag)
+
+    def test_diagnostics_summary(self):
+        summary = self.speech.diagnostics_summary()
+        self.assertIsInstance(summary, str)
+        self.assertIn("UniversalSpeech Diagnostics Report", summary)
+        self.assertIn("Active Engine:", summary)
+        self.assertIn("Engine Capabilities & Parameters", summary)
+
 
 if __name__ == "__main__":
     unittest.main()

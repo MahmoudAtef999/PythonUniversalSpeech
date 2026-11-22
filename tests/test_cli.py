@@ -55,6 +55,20 @@ class TestCLI(unittest.TestCase):
         finally:
             sys.stdout = orig_stdout
 
+    def test_cli_diagnostics(self):
+        buf = io.StringIO()
+        orig_stdout = sys.stdout
+        try:
+            sys.stdout = buf
+            ret = main(["--diagnostics"])
+            self.assertEqual(ret, 0)
+            output = buf.getvalue()
+            self.assertIn("UniversalSpeech Diagnostics Report", output)
+            self.assertIn("Active Engine:", output)
+            self.assertIn("Engine Capabilities & Parameters", output)
+        finally:
+            sys.stdout = orig_stdout
+
     def test_cli_message_speak(self):
         ret = main(["Testing CLI speech message", "--wait"])
         self.assertEqual(ret, 0)

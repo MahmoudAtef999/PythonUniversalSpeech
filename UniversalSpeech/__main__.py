@@ -73,6 +73,21 @@ def main(args: Optional[list] = None) -> int:
         help="Show current engine, active screen reader, and active voice.",
     )
     parser.add_argument(
+        "-d", "--diagnostics",
+        action="store_true",
+        help="Show comprehensive system and speech engine diagnostics report.",
+    )
+    parser.add_argument(
+        "--rate",
+        type=int,
+        help="Set speech rate (if supported by active engine).",
+    )
+    parser.add_argument(
+        "--volume",
+        type=int,
+        help="Set speech volume (if supported by active engine).",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"UniversalSpeech {__version__}",
@@ -90,6 +105,16 @@ def main(args: Optional[list] = None) -> int:
                 speech.set_voice(int(parsed.voice))
             else:
                 speech.set_voice(parsed.voice)
+
+        if parsed.rate is not None and speech.rate_supported:
+            speech.rate = parsed.rate
+
+        if parsed.volume is not None and speech.volume_supported:
+            speech.volume = parsed.volume
+
+        if parsed.diagnostics:
+            print(speech.diagnostics_summary())
+            return 0
 
         if parsed.list_engines:
             print("Supported Speech Engines:")
@@ -128,6 +153,12 @@ def main(args: Optional[list] = None) -> int:
             print(f"Active Screen Reader: {speech.current_screen_reader_name or 'None'}")
             print(f"Current Voice:        {voice_str}")
             return 0
+
+        # Read from piped stdin if no message argument was provided
+        if not parsed.message and not sys.stdin.isatty():
+            piped_msg = sys.stdin.read().strip()
+            if piped_msg:
+                parsed.message = piped_msg
 
         if parsed.message:
             interrupt = not parsed.no_interrupt

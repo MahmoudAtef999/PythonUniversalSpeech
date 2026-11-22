@@ -1,6 +1,7 @@
 """
 Core UniversalSpeech class and interface.
 """
+import sys
 import ctypes
 from typing import Optional, Dict, Any, Union, List, Tuple
 from .loader import Loader
@@ -862,6 +863,113 @@ class UniversalSpeech:
 
     # Alias
     jfw_get_user_settings_directory = jaws_get_user_settings_directory
+
+    def get_diagnostics(self) -> Dict[str, Any]:
+        """
+        Gather comprehensive diagnostic information about current speech engines,
+        screen readers, voices, and audio capabilities.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing diagnostic data.
+        """
+        active_voice = self.get_voice()
+        installed_voices = self.get_voices() if self.voice_supported else []
+        screen_readers = []
+        for r in self.get_screen_readers():
+            ver = None
+            if "nvda" in r.name.lower():
+                ver = self.nvda_get_version()
+            elif "jaws" in r.name.lower() or "jfw" in r.name.lower():
+                ver = self.jfw_get_version()
+            screen_readers.append({
+                "id": r.id,
+                "name": r.name,
+                "available": r.available,
+                "version": ver,
+            })
+
+        return {
+            "platform": sys.platform,
+            "engine_used": self.engine_used,
+            "active_screen_reader_name": self.current_screen_reader_name or None,
+            "active_screen_reader_id": self.current_screen_reader_id,
+            "screen_readers": screen_readers,
+            "engines": self.get_engines(),
+            "capabilities": {
+                "rate": self.rate_supported,
+                "volume": self.volume_supported,
+                "pitch": self.pitch_supported,
+                "inflection": self.inflection_supported,
+                "pause": self.pause_supported,
+                "busy": self.busy_supported,
+                "wait": self.wait_supported,
+                "voices": self.voice_supported,
+            },
+            "parameters": {
+                "rate": self.get_rate() if self.rate_supported else None,
+                "rate_range": self.rate_range if self.rate_supported else None,
+                "volume": self.get_volume() if self.volume_supported else None,
+                "volume_range": self.volume_range if self.volume_supported else None,
+                "pitch": self.get_pitch() if self.pitch_supported else None,
+                "pitch_range": self.pitch_range if self.pitch_supported else None,
+                "inflection": self.get_inflection() if self.inflection_supported else None,
+                "inflection_range": self.inflection_range if self.inflection_supported else None,
+                "is_busy": self.is_busy,
+                "is_paused": self.is_paused,
+            },
+            "active_voice": {
+                "id": active_voice.id,
+                "name": active_voice.name,
+            } if active_voice else None,
+            "voices_count": len(installed_voices),
+        }
+
+    def diagnostics_summary(self) -> str:
+        """
+        Format diagnostic information as a human-readable text report.
+
+        Returns:
+            str: Multi-line formatted diagnostics summary.
+        """
+        diag = self.get_diagnostics()
+        lines = [
+            "==================================================",
+            "        UniversalSpeech Diagnostics Report        ",
+            "==================================================",
+            f"Platform:             {diag['platform']}",
+            f"Active Engine:        {diag['engine_used'] or 'None'}",
+            f"Active Screen Reader: {diag['active_screen_reader_name'] or 'None'} (ID: {diag['active_screen_reader_id']})",
+            "",
+            "--- Supported Screen Readers ---",
+        ]
+        for r in diag["screen_readers"]:
+            ver_str = f" (v{r['version']})" if r["version"] else ""
+            status = "Active / Running" if r["available"] else ("Detected" if r["version"] else "Not Detected")
+            lines.append(f"  [{r['id']}] {r['name']:<18}: {status}{ver_str}")
+
+        lines.append("")
+        lines.append("--- Speech Engines ---")
+        for name, details in diag["engines"].items():
+            status = "Available" if details["available"] else "Unavailable"
+            lines.append(f"  [{details['id']}] {name:<18}: {status}")
+
+        lines.append("")
+        lines.append("--- Engine Capabilities & Parameters ---")
+        caps = diag["capabilities"]
+        params = diag["parameters"]
+        lines.append(f"  Rate:       {'Supported' if caps['rate'] else 'Unsupported'}" + (f" (Current: {params['rate']}, Range: {params['rate_range']})" if caps['rate'] else ""))
+        lines.append(f"  Volume:     {'Supported' if caps['volume'] else 'Unsupported'}" + (f" (Current: {params['volume']}, Range: {params['volume_range']})" if caps['volume'] else ""))
+        lines.append(f"  Pitch:      {'Supported' if caps['pitch'] else 'Unsupported'}" + (f" (Current: {params['pitch']}, Range: {params['pitch_range']})" if caps['pitch'] else ""))
+        lines.append(f"  Inflection: {'Supported' if caps['inflection'] else 'Unsupported'}" + (f" (Current: {params['inflection']}, Range: {params['inflection_range']})" if caps['inflection'] else ""))
+        lines.append(f"  Pause/Wait: Pause={caps['pause']}, Wait={caps['wait']}, Busy={caps['busy']}")
+
+        lines.append("")
+        lines.append("--- Voices ---")
+        lines.append(f"  Voice Support:  {caps['voices']}")
+        lines.append(f"  Total Voices:   {diag['voices_count']}")
+        lines.append(f"  Active Voice:   {diag['active_voice']['name'] if diag['active_voice'] else 'None'}")
+        lines.append("==================================================")
+        return "\n".join(lines)
 
 
 __all__ = ["UniversalSpeech"]
