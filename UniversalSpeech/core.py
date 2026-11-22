@@ -786,5 +786,60 @@ class UniversalSpeech:
                     return val
         return None
 
+    # Alias
+    jaws_get_version = jfw_get_version
+
+    def jaws_run_script(self, script_name: str) -> bool:
+        """
+        Execute a JAWS script by name.
+
+        Parameters:
+            script_name (str): The name of the JAWS script to run (e.g. 'SayLine', 'SayWindowTitle').
+
+        Returns:
+            bool: True if JAWS successfully executed the script, False if JAWS is not active or failed.
+        """
+        if hasattr(self.__uspeech, "jfwRunScriptW"):
+            return bool(self.__uspeech.jfwRunScriptW(script_name))
+        return False
+
+    # Alias
+    jfw_run_script = jaws_run_script
+
+    def jaws_run_function(self, function_call: str) -> bool:
+        """
+        Execute a JAWS script function call with arguments.
+
+        Parameters:
+            function_call (str): The JAWS function call syntax (e.g. 'SayString("Hello")').
+
+        Returns:
+            bool: True if JAWS successfully executed the function, False if JAWS is not active or failed.
+        """
+        if hasattr(self.__uspeech, "jfwRunFunctionW"):
+            return bool(self.__uspeech.jfwRunFunctionW(function_call))
+        return False
+
+    # Alias
+    jfw_run_function = jaws_run_function
+
+    def jaws_get_user_settings_directory(self) -> Optional[str]:
+        """
+        Get the path to the user settings directory of the currently running JAWS instance.
+
+        Returns:
+            Optional[str]: Absolute path to JAWS settings directory, or None if JAWS is not running.
+        """
+        if hasattr(self.__uspeech, "jfwGetUserSettingsDirectory"):
+            buf = ctypes.create_string_buffer(512)
+            if self.__uspeech.jfwGetUserSettingsDirectory(buf, 512):
+                val = buf.value.decode("utf-8", errors="replace").strip()
+                if val:
+                    return val
+        return None
+
+    # Alias
+    jfw_get_user_settings_directory = jaws_get_user_settings_directory
+
 
 __all__ = ["UniversalSpeech"]

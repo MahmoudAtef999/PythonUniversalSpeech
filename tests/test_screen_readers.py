@@ -77,6 +77,22 @@ class TestScreenReaders(unittest.TestCase):
         if self.speech.jaws_is_available():
             self.assertIsInstance(jfw_ver, str)
             self.assertTrue(len(jfw_ver) > 0)
+        self.assertEqual(self.speech.jaws_get_version(), jfw_ver)
+
+    def test_jaws_scripting_methods(self):
+        # Even when JAWS is not running, these methods should safely return bool or None without crashing
+        script_res = self.speech.jaws_run_script("SayLine")
+        self.assertIsInstance(script_res, bool)
+        self.assertEqual(self.speech.jfw_run_script("SayLine"), script_res)
+
+        func_res = self.speech.jaws_run_function("SayString(\"test\")")
+        self.assertIsInstance(func_res, bool)
+        self.assertEqual(self.speech.jfw_run_function("SayString(\"test\")"), func_res)
+
+        settings_dir = self.speech.jaws_get_user_settings_directory()
+        if settings_dir is not None:
+            self.assertIsInstance(settings_dir, str)
+        self.assertEqual(self.speech.jfw_get_user_settings_directory(), settings_dir)
 
 
 if __name__ == "__main__":

@@ -210,5 +210,26 @@ class Loader:
             uspeech.jfwGetRunningVersion.restype = ctypes.c_int
             uspeech.jfwGetRunningVersion.argtypes = [ctypes.c_char_p, ctypes.c_int]
 
+        # JAWS-specific scripting and settings functions
+        if hasattr(uspeech, "jfwRunScriptW"):
+            uspeech.jfwRunScriptW.restype = ctypes.c_int
+            uspeech.jfwRunScriptW.argtypes = [ctypes.c_wchar_p]
+
+        if hasattr(uspeech, "jfwRunScriptA"):
+            uspeech.jfwRunScriptA.restype = ctypes.c_int
+            uspeech.jfwRunScriptA.argtypes = [ctypes.c_char_p]
+
+        if hasattr(uspeech, "jfwRunFunctionW"):
+            uspeech.jfwRunFunctionW.restype = ctypes.c_int
+            uspeech.jfwRunFunctionW.argtypes = [ctypes.c_wchar_p]
+
+        if hasattr(uspeech, "jfwRunFunctionA"):
+            uspeech.jfwRunFunctionA.restype = ctypes.c_int
+            uspeech.jfwRunFunctionA.argtypes = [ctypes.c_char_p]
+
+        if hasattr(uspeech, "jfwGetUserSettingsDirectory"):
+            uspeech.jfwGetUserSettingsDirectory.restype = ctypes.c_int
+            uspeech.jfwGetUserSettingsDirectory.argtypes = [ctypes.c_char_p, ctypes.c_int]
+
 
 __all__ = ["Loader"]
