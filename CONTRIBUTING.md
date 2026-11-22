@@ -6,7 +6,7 @@ Thank you for contributing to UniversalSpeech! This document outlines the proces
 
 ## 1. Development Setup
 
-UniversalSpeech is compatible with Windows (32-bit and 64-bit) and Python 3.8+.
+UniversalSpeech supports **Windows**, **Linux**, and **macOS** on Python 3.8+ with **zero external dependencies**.
 
 ### Clone the repository
 ```bash
@@ -15,15 +15,21 @@ cd PythonUniversalSpeech
 ```
 
 ### Create and activate a virtual environment
-```bash
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+- **Windows (PowerShell)**:
+  ```powershell
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  ```
+- **Linux & macOS (Bash/Zsh)**:
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
 ### Install development dependencies
 ```bash
 python -m pip install --upgrade pip
-python -m pip install pytest build twine
+python -m pip install pytest pytest-cov mypy build twine
 ```
 
 ---
@@ -34,17 +40,25 @@ The test suite can be run using either Python's built-in `unittest` runner or `p
 
 ### Using unittest
 ```bash
+# Windows PowerShell:
 $env:PYTHONPATH = "."
 python -m unittest discover -s tests -t . -v
+
+# Linux / macOS:
+PYTHONPATH=. python -m unittest discover -s tests -t . -v
 ```
 
 ### Using pytest
 ```bash
+# Windows PowerShell:
 $env:PYTHONPATH = "."
-python -m pytest tests -v
+python -m pytest tests -v --cov=UniversalSpeech
+
+# Linux / macOS:
+PYTHONPATH=. pytest tests -v --cov=UniversalSpeech
 ```
 
-All 61 automated unit tests must pass before submitting any changes.
+All 85 automated unit tests must pass before submitting any changes.
 
 ---
 
@@ -60,81 +74,29 @@ The built distributions will appear in `dist/`:
 - `dist/universalspeech-<version>-py3-none-any.whl`
 - `dist/universalspeech-<version>.tar.gz`
 
-### Verifying Package Metadata
-Run `twine check` with `--strict` to ensure metadata conforms to PyPA standards:
+### Validating the built wheel
 ```bash
-python -m twine check --strict dist/*
+twine check dist/*
 ```
 
 ---
 
-## 4. Release and Publishing Workflow
+## 4. Code Quality & Standards
 
-UniversalSpeech uses **GitHub Actions** and **PyPI Trusted Publishing** (OpenID Connect / OIDC) for secure, automated releases.
-
-> **Note:** Never commit PyPI API tokens or passwords to the repository. Trusted Publishing handles authentication automatically without secrets.
-
-### Release Flow:
-```text
-Git Tag (e.g., v2.0.0)
-       ↓
-GitHub Release
-       ↓
-GitHub Actions (publish.yml)
-       ↓
-Build & Security Checks
-       ↓
-Publish to PyPI via Trusted Publishing
-```
-
-### Step-by-Step Release Process:
-
-1. **Update Version Number:**
-   - In `UniversalSpeech/__init__.py`: update `__version__ = "X.Y.Z"`.
-   - In `pyproject.toml`: update `version = "X.Y.Z"`.
-   - In `tests/test_constants.py`: update expected version test.
-
-2. **Run Tests and Build Verification:**
-   ```bash
-   python -m unittest discover -s tests -t . -v
-   python -m build
-   python -m twine check --strict dist/*
-   ```
-
-3. **Commit and Push Changes:**
-   ```bash
-   git commit -am "release: bump version to vX.Y.Z"
-   git push origin main
-   ```
-
-4. **Create a Git Tag:**
-   ```bash
-   git tag -a vX.Y.Z -m "Release vX.Y.Z"
-   git push origin vX.Y.Z
-   ```
-
-5. **Create a GitHub Release:**
-   - Go to **Releases** on GitHub.
-   - Click **Draft a new release**.
-   - Choose the tag `vX.Y.Z`.
-   - Add title (e.g., `UniversalSpeech vX.Y.Z`) and release notes.
-   - Click **Publish release**.
-
-6. **Automated Publishing:**
-   - The `Publish to PyPI` workflow will automatically trigger on GitHub Actions.
-   - It will build the distributions, verify metadata, check archive contents, and upload to PyPI using PyPI Trusted Publishing.
+- **Zero External Dependencies**: UniversalSpeech must not introduce mandatory third-party runtime dependencies. Everything must be implemented using the Python standard library (`ctypes`, `socket`, `subprocess`).
+- **Typing**: Keep complete type annotations across all modules; verify with `mypy UniversalSpeech`.
+- **Cross-Platform Compatibility**: Ensure features cleanly adapt or raise `UnsupportedError` across Windows, Linux, and macOS.
+- **Documentation**: All public classes, methods, and properties must have clear docstrings.
 
 ---
 
-## 5. Security and Architecture Notes
+## 5. Submitting Changes
 
-- **Modular Architecture:**
-  - `UniversalSpeech/core.py`: Main `UniversalSpeech` class implementation.
-  - `UniversalSpeech/loader.py`: 32-bit and 64-bit DLL loader and ctypes signature configuration.
-  - `UniversalSpeech/constants.py`: Constants, `SpeechParam`, and `ScreenReaderId` enums.
-  - `UniversalSpeech/voices.py`: `Voice` dataclass and voice discovery helpers.
-  - `UniversalSpeech/screen_readers.py`: `ScreenReaderInfo` dataclass for screen reader status.
-  - `UniversalSpeech/__main__.py`: Command-Line Interface (`python -m UniversalSpeech`).
-  - `UniversalSpeech/py.typed`: PEP 561 compliance marker for static type checkers.
-- **ZDSRAPI.dll:** This library is intentionally **not** bundled with UniversalSpeech. The C library includes safe fallback handling if the DLL is absent.
-- **Native DLLs:** All native DLLs (`UniversalSpeech.dll`, `dolapi.dll`, `jfwapi.dll`, `nvdaControllerClient.dll`, `SAAPI32.dll`) are bundled in `lib/` (32-bit) and `lib64/` (64-bit) for seamless runtime execution on Windows.
+1. Create a feature branch from `main`: `git checkout -b feature/my-new-feature`
+2. Commit changes with clear, descriptive commit messages adhering to Conventional Commits:
+   - `feat(...)`: New features or backends.
+   - `fix(...)`: Bug fixes.
+   - `refactor(...)`: Architectural improvements without behavior changes.
+   - `test(...)`: Adding or updating test cases.
+   - `docs(...)`: Documentation updates.
+3. Push to your fork and submit a Pull Request.
