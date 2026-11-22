@@ -420,11 +420,11 @@ class LinuxBackend(BaseBackend):
 
     def stop(self) -> int:
         success = False
+        # Cancel this client's speech only via SSIP to avoid silencing other applications (such as Orca)
         if self._ssip_client and self._ssip_client.is_connected:
             if self._ssip_client.cancel():
                 success = True
-
-        if shutil.which("spd-say"):
+        elif shutil.which("spd-say"):
             try:
                 subprocess.run(["spd-say", "--cancel"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1.0)
                 success = True
