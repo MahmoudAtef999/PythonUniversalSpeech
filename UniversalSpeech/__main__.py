@@ -95,7 +95,7 @@ def main(args: Optional[list] = None) -> int:
 
     parsed = parser.parse_args(args)
 
-    with UniversalSpeech() as speech:
+    with UniversalSpeech(stop_on_exit=False) as speech:
         if parsed.engine:
             speech.set_engine(parsed.engine)
 
@@ -166,7 +166,11 @@ def main(args: Optional[list] = None) -> int:
                 speech.speech(parsed.message)
             else:
                 speech.say(parsed.message, interrupt=interrupt)
-            if parsed.wait:
+
+            # Auto-wait if explicitly requested, or for in-process engines (like SAPI)
+            # where process termination immediately kills audio before it is heard.
+            engine_name = speech.engine_used.lower()
+            if parsed.wait or "sapi" in engine_name:
                 speech.wait()
             return 0
 
