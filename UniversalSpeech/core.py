@@ -177,7 +177,7 @@ class UniversalSpeech(BaseBackend):
 
     @current_voice.setter
     def current_voice(self, voice: Union[Voice, int, str]) -> None:
-        self._backend.current_voice = voice
+        self.set_voice(voice)
 
     def get_voices(self) -> List[Voice]:
         return self._backend.get_voices()

@@ -226,7 +226,7 @@ class LinuxBackend(BaseBackend):
 
     def get_engines(self) -> Dict[str, Dict[str, Any]]:
         has_spd = bool((self._ssip_client and self._ssip_client.is_connected) or shutil.which("spd-say"))
-        has_espeak = bool(self._espeak_lib or shutil.which("espeak-ng") or shutil.which("espeak"))
+        has_espeak = bool((self._espeak_lib is not None) or shutil.which("espeak-ng") or shutil.which("espeak"))
         return {
             "speech-dispatcher": {
                 "id": 1,
@@ -264,7 +264,7 @@ class LinuxBackend(BaseBackend):
             self._active_engine_name = "speech-dispatcher"
             self._current_engine = "Speech Dispatcher"
         elif "espeak" in eng_str:
-            if not (self._espeak_lib or shutil.which("espeak-ng") or shutil.which("espeak")):
+            if not ((self._espeak_lib is not None) or shutil.which("espeak-ng") or shutil.which("espeak")):
                 raise EngineError("eSpeak is not available on this system.")
             self._active_engine_name = "espeak"
             self._current_engine = "eSpeak"
