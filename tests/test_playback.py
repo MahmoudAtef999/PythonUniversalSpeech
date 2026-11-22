@@ -39,9 +39,25 @@ class TestPlaybackControl(unittest.TestCase):
 
     def test_wait_and_wait_supported(self):
         self.assertIsInstance(self.speech.wait_supported, bool)
-        # Calling wait with 10ms timeout
+        # Calling wait when idle should return True if supported or False if unsupported
         res = self.speech.wait(timeout_ms=10)
         self.assertIsInstance(res, bool)
+
+    def test_wait_reflects_busy_status(self):
+        engines = self.speech.get_engines()
+        if "SAPI5" in engines:
+            self.speech.set_engine("SAPI5")
+        if self.speech.busy_supported:
+            self.speech.stop()
+            self.assertFalse(self.speech.is_busy)
+            # When not busy, wait should return True
+            self.assertTrue(self.speech.wait(timeout_ms=100))
+
+            # When speaking a longer text, a short timeout should return False because it is still busy
+            self.speech.say("This is a longer sentence to test timeout and busy status checking in wait.")
+            res = self.speech.wait(timeout_ms=50)
+            self.assertFalse(res)
+            self.speech.stop()
 
     def test_say_ssml(self):
         # Plain text in say_ssml is supported by SAPI XML engine

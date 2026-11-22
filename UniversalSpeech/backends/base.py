@@ -129,8 +129,10 @@ class BaseBackend(ABC):
         return False
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
-        """Wait for speech playback to finish."""
-        return True
+        """Wait for speech playback to finish. Returns True if speech finished, False if timed out or unsupported."""
+        if not self.wait_supported and not self.busy_supported:
+            return False
+        return not self.is_busy if self.busy_supported else True
 
     @property
     def voice_supported(self) -> bool:

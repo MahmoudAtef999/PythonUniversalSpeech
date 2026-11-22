@@ -2,6 +2,7 @@
 Windows backend for UniversalSpeech, interfacing with UniversalSpeech.dll.
 """
 import sys
+import time
 import ctypes
 import warnings
 from typing import Optional, Dict, Any, Union, List, Tuple
@@ -195,12 +196,30 @@ class WindowsBackend(BaseBackend):
         )
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
-        if timeout_ms is not None:
-            return bool(self.set_value(WAIT, timeout_ms))
-        if self.get_value(WAIT_SUPPORTED) != 0:
-            return bool(self.get_value(WAIT))
-        if hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI"):
-            return bool(self.__uspeech.sapiWait())
+        if not self.wait_supported and not self.busy_supported:
+            return False
+
+        start_time = time.time()
+        timeout_sec = (timeout_ms / 1000.0) if timeout_ms is not None else None
+
+        # Execute native wait if supported by the engine/DLL
+        if self.wait_supported:
+            if timeout_ms is not None:
+                self.set_value(WAIT, timeout_ms)
+            else:
+                if self.get_value(WAIT_SUPPORTED) != 0:
+                    self.get_value(WAIT)
+                elif hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI"):
+                    self.__uspeech.sapiWait()
+
+        # If busy checking is supported, check or poll until playback finishes or timeout expires
+        if self.busy_supported:
+            while self.is_busy:
+                if timeout_sec is not None and (time.time() - start_time) >= timeout_sec:
+                    return False
+                time.sleep(0.02)
+            return not self.is_busy
+
         return True
 
     @property
