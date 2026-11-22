@@ -73,6 +73,21 @@ class TestCLI(unittest.TestCase):
         ret = main(["Testing CLI speech message", "--wait"])
         self.assertEqual(ret, 0)
 
+    def test_cli_rate_and_volume_flags(self):
+        ret = main(["Rate and volume test", "--rate", "100", "--volume", "80", "--wait"])
+        self.assertEqual(ret, 0)
+
+    def test_cli_piped_stdin(self):
+        fake_stdin = io.StringIO("Piped stdin test message")
+        fake_stdin.isatty = lambda: False  # Simulate non-interactive pipe
+        orig_stdin = sys.stdin
+        try:
+            sys.stdin = fake_stdin
+            ret = main([])
+            self.assertEqual(ret, 0)
+        finally:
+            sys.stdin = orig_stdin
+
 
 if __name__ == "__main__":
     unittest.main()
