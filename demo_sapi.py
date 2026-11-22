@@ -60,23 +60,26 @@ def main() -> None:
             speech.say_a(char)
             speech.wait()
 
-        # 7. Volume and speech rate control
-        print("\n--- 7. Volume and Rate Control ---")
+        # 7. Volume and speech rate control via properties & ranges
+        print("\n--- 7. Volume and Rate Control (Pythonic Properties & Ranges) ---")
         if speech.volume_supported:
-            print("   Lowering volume to 60%...")
-            speech.set_volume(60)
+            print(f"   Volume Range: {speech.volume_range}")
+            print("   Lowering volume to 60% via speech.volume = 60...")
+            speech.volume = 60
             speech.say("Volume is now set to 60 percent.")
             speech.wait()
-            # Restore volume
-            speech.set_volume(100)
+            # Restore volume via property
+            speech.volume = 100
+            print(f"   Restored volume: {speech.volume}")
 
         if speech.rate_supported:
-            print("   Increasing speech rate to 200...")
-            speech.set_rate(200)
-            speech.say("This is fast speech at rate 200.")
+            print(f"   Rate Range: {speech.rate_range}")
+            print("   Increasing speech rate to 150 via speech.rate = 150...")
+            speech.rate = 150
+            speech.say("This is speech at rate 150.")
             speech.wait()
             print("   Restoring speech rate to normal (100)...")
-            speech.set_rate(100)
+            speech.rate = 100
             speech.say("Speech rate is back to normal.")
             speech.wait()
 

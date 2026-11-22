@@ -58,15 +58,19 @@ with UniversalSpeech() as speech:
 - `rate` (int): Property getter and setter for speech rate.
 - `rate_supported` (bool): Whether setting speech rate is supported.
 - `rate_min` / `rate_max` (int): Minimum and maximum speech rate for active engine.
+- `rate_range` (Tuple[int, int]): Tuple of `(rate_min, rate_max)`.
 - `volume` (int): Property getter and setter for speech volume.
 - `volume_supported` (bool): Whether setting speech volume is supported.
 - `volume_min` / `volume_max` (int): Minimum and maximum speech volume for active engine.
+- `volume_range` (Tuple[int, int]): Tuple of `(volume_min, volume_max)`.
 - `pitch` (int): Property getter and setter for speech pitch.
 - `pitch_supported` (bool): Whether setting speech pitch is supported.
 - `pitch_min` / `pitch_max` (int): Minimum and maximum speech pitch for active engine.
+- `pitch_range` (Tuple[int, int]): Tuple of `(pitch_min, pitch_max)`.
 - `inflection` (int): Property getter and setter for speech inflection.
 - `inflection_supported` (bool): Whether setting speech inflection is supported.
 - `inflection_min` / `inflection_max` (int): Minimum and maximum speech inflection for active engine.
+- `inflection_range` (Tuple[int, int]): Tuple of `(inflection_min, inflection_max)`.
 
 #### Speech & Braille Methods:
 - `say(msg: str, interrupt: bool = True) -> int`: Speaks message using the active engine (full Unicode).
@@ -108,6 +112,15 @@ with UniversalSpeech() as speech:
 - `nvda_get_version() -> Optional[str]`: Returns NVDA version string if running (e.g. '2026.2'), else None.
 - `jfw_get_version() -> Optional[str]`: Returns JAWS version string if running (e.g. '2025.0'), else None.
 
+#### JAWS Scripting & Extensions:
+- `jaws_run_script(script_name: str) -> bool`: Executes a JAWS script by name (e.g. `SayLine`).
+- `jaws_run_function(function_call: str) -> bool`: Executes a JAWS function call with arguments.
+- `jaws_get_user_settings_directory() -> Optional[str]`: Returns path to the active JAWS user settings folder.
+
+#### System Diagnostics:
+- `get_diagnostics() -> Dict[str, Any]`: Returns structured dictionary of system, engine, and voice status.
+- `diagnostics_summary() -> str`: Formats diagnostic information as a human-readable text report.
+
 ## Command-Line Interface (CLI):
 
 UniversalSpeech can be run directly from the terminal:
@@ -116,8 +129,17 @@ UniversalSpeech can be run directly from the terminal:
 # Speak a message
 python -m UniversalSpeech "Hello world"
 
+# Speak from piped input
+echo "Operation completed" | python -m UniversalSpeech
+
 # Speak and display on braille
 python -m UniversalSpeech "Hello" --braille
+
+# Adjust rate and volume from CLI
+python -m UniversalSpeech "Fast announcement" --rate 120 --volume 90
+
+# Show system and speech engine diagnostics report
+python -m UniversalSpeech --diagnostics
 
 # Show currently active engine and screen reader
 python -m UniversalSpeech --current
