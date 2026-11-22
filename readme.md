@@ -55,18 +55,26 @@ with UniversalSpeech() as speech:
 - `is_paused` (bool): Whether speech playback is paused.
 - `pause_supported` (bool): Whether pausing speech is supported.
 - `wait_supported` (bool): Whether waiting for speech completion is supported.
+- `rate` (int): Property getter and setter for speech rate.
 - `rate_supported` (bool): Whether setting speech rate is supported.
+- `rate_min` / `rate_max` (int): Minimum and maximum speech rate for active engine.
+- `volume` (int): Property getter and setter for speech volume.
 - `volume_supported` (bool): Whether setting speech volume is supported.
+- `volume_min` / `volume_max` (int): Minimum and maximum speech volume for active engine.
+- `pitch` (int): Property getter and setter for speech pitch.
 - `pitch_supported` (bool): Whether setting speech pitch is supported.
+- `pitch_min` / `pitch_max` (int): Minimum and maximum speech pitch for active engine.
+- `inflection` (int): Property getter and setter for speech inflection.
 - `inflection_supported` (bool): Whether setting speech inflection is supported.
+- `inflection_min` / `inflection_max` (int): Minimum and maximum speech inflection for active engine.
 
 #### Speech & Braille Methods:
-- `say(msg: str, interrupt: bool = True) -> None`: Speaks message using the active engine.
-- `say_a(msg: str, interrupt: bool = True) -> None`: Speaks the first letter/character of the message.
-- `braille(msg: str) -> None`: Displays message on connected braille display.
-- `speech(msg: str) -> None`: Performs both speech and braille display.
-- `speech_a(msg: str) -> None`: Performs both `say_a` and braille display.
-- `stop() -> None`: Immediately stops speech.
+- `say(msg: str, interrupt: bool = True) -> int`: Speaks message using the active engine (full Unicode).
+- `say_a(msg: str, interrupt: bool = True) -> int`: Speaks ANSI message using legacy `speechSayA`.
+- `braille(msg: str) -> int`: Displays message on connected braille display.
+- `speech(msg: str, interrupt: bool = True) -> None`: Performs both speech and braille display.
+- `speech_a(msg: str, interrupt: bool = True) -> None`: Performs both `say_a` and braille display.
+- `stop() -> int`: Immediately stops speech.
 - `close() -> None`: Stops speech and cleans up resources.
 - `say_ssml(ssml: str) -> bool`: Speaks XML/SSML formatted text if supported.
 
@@ -81,7 +89,7 @@ with UniversalSpeech() as speech:
 - `get_voice() -> Optional[Voice]`: Returns the currently active voice.
 - `set_voice(voice: Union[int, str, Voice]) -> None`: Sets active voice by index, name, or Voice instance.
 - `get_engines() -> Dict[str, Dict]`: Returns dictionary of all engines with availability status.
-- `set_engine(engine: str) -> None`: Sets speech engine to the specified engine name.
+- `set_engine(engine: Union[str, int, ScreenReaderId]) -> None`: Sets speech engine by name (case-insensitive), integer ID, or enum.
 - `enable_native_speech(enabled: bool = True) -> None`: Enables or disables fallback to native OS engines (SAPI5).
 
 #### Screen Reader Information:
@@ -96,6 +104,7 @@ with UniversalSpeech() as speech:
 - `cobra_is_available() -> bool`: True if Cobra is running.
 - `zoomtext_is_available() -> bool`: True if ZoomText is running.
 - `narrator_is_available() -> bool`: True if Windows Narrator is running.
+- `zdsr_is_available() -> bool`: True if ZDSR is running.
 - `nvda_get_version() -> Optional[str]`: Returns NVDA version string if running (e.g. '2026.2'), else None.
 - `jfw_get_version() -> Optional[str]`: Returns JAWS version string if running (e.g. '2025.0'), else None.
 
@@ -126,6 +135,7 @@ python -m UniversalSpeech --list-readers
 All exceptions inherit from `UniversalSpeechError`:
 - `UniversalSpeechError`: Base exception for the library.
 - `DLLFileNotFoundError`: Raised when required DLL files are missing.
+- `PlatformError`: Raised when the library is loaded on an unsupported OS.
 - `UnsupportedError`: Raised when a feature is unsupported by the active engine.
 - `EngineError`: Raised when an invalid engine is requested.
 - `VoiceError`: Raised when an invalid voice is requested.
@@ -141,13 +151,16 @@ Users and maintainers are strongly encouraged to upgrade to the modern API, whic
 | Feature | Legacy Method (Deprecated soon) | Modern API (Recommended in 2.0+) | Rationale |
 | :--- | :--- | :--- | :--- |
 | **Lifecycle** | `speech = UniversalSpeech()` | `with UniversalSpeech() as speech:` | Automatic speech stop and resource cleanup on exit |
-| **Speech Rate** | `speech.set_value(RATE, val)` | `speech.set_rate(val)` | Dedicated method with range and support validation |
+| **Speech Rate** | `speech.set_value(RATE, val)` | `speech.rate = val` / `speech.set_rate(val)` | Property setter or dedicated method with bounds |
+| **Rate Query** | `speech.get_value(RATE)` | `speech.rate` / `speech.get_rate()` | Intuitive property or getter |
 | **Rate Check** | `speech.get_value(RATE_SUPPORTED)` | `speech.rate_supported` | Intuitive boolean property |
-| **Volume** | `speech.set_value(VOLUME, val)` | `speech.set_volume(val)` | Safe 0–100 volume setter |
+| **Volume** | `speech.set_value(VOLUME, val)` | `speech.volume = val` / `speech.set_volume(val)` | Property setter or safe 0–100 setter |
+| **Volume Query** | `speech.get_value(VOLUME)` | `speech.volume` / `speech.get_volume()` | Intuitive property or getter |
 | **Volume Check** | `speech.get_value(VOLUME_SUPPORTED)` | `speech.volume_supported` | Intuitive boolean property |
-| **Pitch** | `speech.set_value(PITCH, val)` | `speech.set_pitch(val)` | Dedicated method with support check |
+| **Pitch** | `speech.set_value(PITCH, val)` | `speech.pitch = val` / `speech.set_pitch(val)` | Property setter or dedicated method |
+| **Pitch Query** | `speech.get_value(PITCH)` | `speech.pitch` / `speech.get_pitch()` | Intuitive property or getter |
 | **Pitch Check** | `speech.get_value(PITCH_SUPPORTED)` | `speech.pitch_supported` | Intuitive boolean property |
-| **Inflection** | `speech.set_value(INFLECTION, val)` | `speech.set_inflection(val)` | Clean setter method |
+| **Inflection** | `speech.set_value(INFLECTION, val)` | `speech.inflection = val` / `speech.set_inflection(val)` | Clean property setter |
 | **Wait** | `speech.get_value(WAIT)` / `setValue(WAIT, ms)` | `speech.wait(timeout_ms)` | Clear, blocking synchronization method |
 | **Busy Check** | `speech.get_value(BUSY)` | `speech.is_busy` | Simple boolean property |
 | **Pause / Resume**| `speech.set_value(PAUSED, 1/0)` | `speech.pause()` / `speech.resume()` | Standard audio playback API ergonomics |

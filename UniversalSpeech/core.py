@@ -53,16 +53,33 @@ class UniversalSpeech:
     def __str__(self) -> str:
         return f"UniversalSpeech({self.engine_used or 'None'})"
 
-    def say(self, msg: str, interrupt: bool = True):
-        """Say the given message using the speech engine.
+    def say(self, msg: str, interrupt: bool = True) -> int:
+        """
+        Say the given message using the active speech engine (full Unicode).
+
         Parameters:
         - msg (str): The complete message to be spoken.
-        - interrupt (bool): Whether to interrupt the current speech if True (optional, default is True).
+        - interrupt (bool): Whether to interrupt current speech if True (default is True).
+
+        Returns:
+        - int: 1 if successful, 0 otherwise.
         """
         return self.__uspeech.speechSay(msg, interrupt)
 
-    def say_a(self, msg: Union[str, bytes], interrupt: bool = True):
-        """Say the first letter/character of the given message using the speech engine."""
+    def say_a(self, msg: Union[str, bytes], interrupt: bool = True) -> int:
+        """
+        Speak ANSI string using the legacy speechSayA export.
+        
+        For complete Unicode support (including non-Latin alphabets and symbols),
+        prefer the primary say() method.
+
+        Parameters:
+        - msg (Union[str, bytes]): The message to be spoken.
+        - interrupt (bool): Whether to interrupt current speech if True (default is True).
+
+        Returns:
+        - int: 1 if successful, 0 otherwise.
+        """
         if isinstance(msg, str):
             msg = msg.encode("mbcs", errors="replace")
         return self.__uspeech.speechSayA(msg, interrupt)
@@ -70,8 +87,16 @@ class UniversalSpeech:
     # Backward-compatibility alias
     sayA = say_a
 
-    def braille(self, msg: str):
-        """Display the given message in braille."""
+    def braille(self, msg: str) -> int:
+        """
+        Display the given message on a connected braille display.
+
+        Parameters:
+        - msg (str): The text message to display.
+
+        Returns:
+        - int: 1 if successful, 0 otherwise.
+        """
         return self.__uspeech.brailleDisplay(msg)
 
     def speech(self, msg: str, interrupt: bool = True) -> None:
@@ -97,8 +122,13 @@ class UniversalSpeech:
         braille_msg = msg.decode("mbcs", errors="replace") if isinstance(msg, bytes) else msg
         self.braille(braille_msg)
 
-    def stop(self):
-        """Stop the speech."""
+    def stop(self) -> int:
+        """
+        Stop ongoing speech synthesis immediately.
+
+        Returns:
+        - int: 1 if stopped, 0 otherwise.
+        """
         return self.__uspeech.speechStop()
 
     def get_value(self, what: int) -> int:
@@ -642,6 +672,8 @@ class UniversalSpeech:
             return self.zoomtext_is_available()
         elif "narrator" in norm_name:
             return self.narrator_is_available()
+        elif "zdsr" in norm_name:
+            return self.zdsr_is_available()
         return False
 
     def nvda_is_available(self) -> bool:
@@ -696,6 +728,12 @@ class UniversalSpeech:
         """Check if Windows Narrator is running and available."""
         if hasattr(self.__uspeech, "narIsAvailable"):
             return bool(self.__uspeech.narIsAvailable())
+        return False
+
+    def zdsr_is_available(self) -> bool:
+        """Check if ZDSR screen reader is running and available."""
+        if hasattr(self.__uspeech, "zdsrIsAvailable"):
+            return bool(self.__uspeech.zdsrIsAvailable())
         return False
 
     def nvda_get_version(self) -> Optional[str]:
