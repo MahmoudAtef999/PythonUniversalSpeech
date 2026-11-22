@@ -164,36 +164,58 @@ class UniversalSpeech:
         engine_id = self.get_value(ENGINE)
         return self.get_string(ENGINE + engine_id) or ""
 
-    def set_engine(self, engine: Union[str, int, ScreenReaderId]) -> None:
+    def set_engine(self, engine: Union[str, int, ScreenReaderId, ScreenReaderInfo]) -> None:
         """
         Set the speech synthesis engine.
 
+        Supports engine name (case-insensitive and lenient spacing, e.g. 'sapi5', 'SAPI 5', 'nvda', 'jaws'),
+        integer ID, ScreenReaderId enum, ScreenReaderInfo object, or 'auto' / -1 to restore automatic selection.
+
         Parameters:
-        - engine (Union[str, int, ScreenReaderId]): The name, integer ID, or ScreenReaderId enum of the engine.
+        - engine (Union[str, int, ScreenReaderId, ScreenReaderInfo]): The engine specification.
 
         Raises:
-        - TypeError: If engine is not a string, integer, or ScreenReaderId.
-        - EngineError: If the specified engine is not supported or not available.
+        - TypeError: If engine is not a valid type.
+        - EngineError: If the specified engine is not supported.
         """
-        engines = self.get_engines()
+        if isinstance(engine, ScreenReaderInfo):
+            engine = engine.id
 
         if isinstance(engine, (int, ScreenReaderId)):
             engine_id = int(engine)
+            if engine_id in (-1, AUTO_ENGINE):
+                self.reset_engine()
+                return
+            engines = self.get_engines()
             for details in engines.values():
                 if details["id"] == engine_id:
                     self.set_value(ENGINE, engine_id)
                     return
-            raise EngineError(f"Engine ID {engine_id} is not supported. Use get_engines() to see supported engines.")
+            raise EngineError(
+                f"Engine ID {engine_id} is not supported. Available engines: {list(engines.keys())}"
+            )
 
         if isinstance(engine, str):
-            engine_clean = engine.strip().lower()
+            clean = engine.strip().lower()
+            if clean in ("auto", "default", "automatic"):
+                self.reset_engine()
+                return
+            # Normalize whitespace/hyphens for lenient matching (e.g. 'sapi 5' -> 'sapi5')
+            clean_norm = "".join(c for c in clean if c.isalnum())
+            engines = self.get_engines()
             for name, details in engines.items():
-                if name.lower() == engine_clean:
+                name_clean = name.lower()
+                name_norm = "".join(c for c in name_clean if c.isalnum())
+                if name_clean == clean or name_norm == clean_norm:
                     self.set_value(ENGINE, details["id"])
                     return
-            raise EngineError(f"Engine '{engine}' is not supported. Use get_engines() to see supported engines.")
+            raise EngineError(
+                f"Engine '{engine}' is not supported. Available engines: {list(engines.keys())}"
+            )
 
-        raise TypeError(f"Engine must be a string, integer, or ScreenReaderId, not {type(engine).__name__}.")
+        raise TypeError(
+            f"Engine must be a string, integer, ScreenReaderId, or ScreenReaderInfo, not {type(engine).__name__}."
+        )
 
     def get_engines(self) -> Dict[str, Dict[str, Any]]:
         """Get a Dictionary of available speech engines with their names, availability, and IDs."""

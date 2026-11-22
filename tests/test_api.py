@@ -150,8 +150,10 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         if "SAPI5" in engines:
             self.speech.set_engine("SAPI5")
             self.assertEqual(self.speech.engine_used, "SAPI5")
-            # Test case-insensitivity
+            # Test case-insensitivity and lenient spacing
             self.speech.set_engine("sapi5")
+            self.assertEqual(self.speech.engine_used, "SAPI5")
+            self.speech.set_engine("sapi 5")
             self.assertEqual(self.speech.engine_used, "SAPI5")
             # Test ScreenReaderId enum
             self.speech.set_engine(ScreenReaderId.SAPI5)
@@ -159,6 +161,15 @@ class TestUniversalSpeechAPI(unittest.TestCase):
             # Test integer ID
             self.speech.set_engine(int(ScreenReaderId.SAPI5))
             self.assertEqual(self.speech.engine_used, "SAPI5")
+            # Test ScreenReaderInfo object
+            reader_info = UniversalSpeech.ScreenReaderInfo(id=int(ScreenReaderId.SAPI5), name="SAPI5", available=True)
+            self.speech.set_engine(reader_info)
+            self.assertEqual(self.speech.engine_used, "SAPI5")
+            # Test 'auto' and -1
+            self.speech.set_engine("auto")
+            self.assertTrue(len(self.speech.engine_used) > 0)
+            self.speech.set_engine(-1)
+            self.assertTrue(len(self.speech.engine_used) > 0)
 
     def test_set_engine_unsupported(self):
         with self.assertRaises(UnsupportedError):
