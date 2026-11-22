@@ -8,6 +8,7 @@ import socket
 import shutil
 import subprocess
 import ctypes
+import threading
 from typing import Optional, Dict, Any, Union, List, Tuple
 from .base import BaseBackend
 from ..voices import Voice
@@ -132,6 +133,10 @@ class LinuxBackend(BaseBackend):
     eSpeak/eSpeak-ng, and Orca screen reader detection.
     """
 
+    _espeak_lock = threading.Lock()
+    _cached_espeak_lib: Optional[ctypes.CDLL] = None
+    _espeak_initialized: bool = False
+
     def __init__(self) -> None:
         self._active_engine_name = "auto"
         self._current_engine = "None"
@@ -178,18 +183,27 @@ class LinuxBackend(BaseBackend):
             self._ssip_client = client
 
     def _init_espeak(self) -> None:
-        """Attempt to load libespeak-ng or libespeak via ctypes."""
-        for libname in ("libespeak-ng.so.1", "libespeak-ng.so", "libespeak.so.1", "libespeak.so"):
-            try:
-                lib = ctypes.cdll.LoadLibrary(libname)
-                # Initialize espeak: 2 = AUDIO_OUTPUT_PLAYBACK
-                if hasattr(lib, "espeak_Initialize"):
-                    res = lib.espeak_Initialize(2, 0, None, 0)
-                    if res != -1:
-                        self._espeak_lib = lib
-                        return
-            except Exception:
-                continue
+        """Attempt to load libespeak-ng or libespeak via ctypes safely with process-level caching."""
+        with LinuxBackend._espeak_lock:
+            if LinuxBackend._espeak_initialized:
+                self._espeak_lib = LinuxBackend._cached_espeak_lib
+                return
+
+            for libname in ("libespeak-ng.so.1", "libespeak-ng.so", "libespeak.so.1", "libespeak.so"):
+                try:
+                    lib = ctypes.cdll.LoadLibrary(libname)
+                    # Initialize espeak: 2 = AUDIO_OUTPUT_PLAYBACK
+                    if hasattr(lib, "espeak_Initialize"):
+                        res = lib.espeak_Initialize(2, 0, None, 0)
+                        if res != -1:
+                            LinuxBackend._cached_espeak_lib = lib
+                            LinuxBackend._espeak_initialized = True
+                            self._espeak_lib = lib
+                            return
+                except Exception:
+                    continue
+
+            LinuxBackend._espeak_initialized = True
 
     def _resolve_engine(self) -> None:
         """Determine which speech engine to use based on availability."""
@@ -298,17 +312,18 @@ class LinuxBackend(BaseBackend):
         if target in ("auto", "espeak"):
             if self._espeak_lib and hasattr(self._espeak_lib, "espeak_Synth"):
                 try:
-                    # espeakRate range ~80 to ~450 wpm, map 0..100 -> 80..380
-                    wpm = int(80 + (self._rate / 100.0) * 300)
-                    if hasattr(self._espeak_lib, "espeak_SetParameter"):
-                        # espeakRATE = 1, espeakVOLUME = 2, espeakPITCH = 3
-                        self._espeak_lib.espeak_SetParameter(1, wpm, 0)
-                        self._espeak_lib.espeak_SetParameter(2, self._volume, 0)
-                        self._espeak_lib.espeak_SetParameter(3, self._pitch, 0)
+                    with LinuxBackend._espeak_lock:
+                        # espeakRate range ~80 to ~450 wpm, map 0..100 -> 80..380
+                        wpm = int(80 + (self._rate / 100.0) * 300)
+                        if hasattr(self._espeak_lib, "espeak_SetParameter"):
+                            # espeakRATE = 1, espeakVOLUME = 2, espeakPITCH = 3
+                            self._espeak_lib.espeak_SetParameter(1, wpm, 0)
+                            self._espeak_lib.espeak_SetParameter(2, self._volume, 0)
+                            self._espeak_lib.espeak_SetParameter(3, self._pitch, 0)
 
-                    msg_bytes = msg.encode("utf-8")
-                    # POS_CHARACTER = 1, SEARCH_NORMAL = 0
-                    self._espeak_lib.espeak_Synth(msg_bytes, len(msg_bytes) + 1, 0, 1, 0, 0x1000, None, None)
+                        msg_bytes = msg.encode("utf-8")
+                        # POS_CHARACTER = 1, SEARCH_NORMAL = 0
+                        self._espeak_lib.espeak_Synth(msg_bytes, len(msg_bytes) + 1, 0, 1, 0, 0x1000, None, None)
                     return 1
                 except Exception:
                     pass
@@ -343,7 +358,8 @@ class LinuxBackend(BaseBackend):
 
         if self._espeak_lib and hasattr(self._espeak_lib, "espeak_Cancel"):
             try:
-                self._espeak_lib.espeak_Cancel()
+                with LinuxBackend._espeak_lock:
+                    self._espeak_lib.espeak_Cancel()
                 success = True
             except Exception:
                 pass
