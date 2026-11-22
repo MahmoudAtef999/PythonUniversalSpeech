@@ -405,7 +405,7 @@ class BaseBackend(ABC):
             f"Active Engine:        {diag.get('engine_used') or 'None'}",
             f"Active Screen Reader: {diag.get('active_screen_reader_name') or 'None'} (ID: {diag.get('active_screen_reader_id', 0)})",
             "",
-            "--- Capabilities & Parameters ---",
+            "--- Engine Capabilities & Parameters ---",
         ]
         caps = diag.get("capabilities", {})
         params = diag.get("parameters", {})

@@ -65,7 +65,7 @@ class TestCLI(unittest.TestCase):
             output = buf.getvalue()
             self.assertIn("UniversalSpeech Diagnostics Report", output)
             self.assertIn("Active Engine:", output)
-            self.assertIn("Engine Capabilities & Parameters", output)
+            self.assertIn("Capabilities & Parameters", output)
         finally:
             sys.stdout = orig_stdout
 

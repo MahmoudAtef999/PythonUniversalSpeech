@@ -189,6 +189,7 @@ class MacOSBackend(BaseBackend):
         if self._last_process and self._last_process.poll() is None:
             try:
                 self._last_process.terminate()
+                self._last_process.wait(timeout=1.0)
                 self._last_process = None
                 success = True
             except Exception:
@@ -205,6 +206,29 @@ class MacOSBackend(BaseBackend):
 
     def close(self) -> None:
         self.stop()
+        if self._last_process:
+            try:
+                if self._last_process.poll() is None:
+                    self._last_process.terminate()
+                    self._last_process.wait(timeout=1.0)
+            except Exception:
+                pass
+            self._last_process = None
+
+    @property
+    def wait_supported(self) -> bool:
+        return True
+
+    def wait(self, timeout_ms: Optional[int] = None) -> bool:
+        if self._last_process:
+            try:
+                timeout = timeout_ms / 1000.0 if timeout_ms is not None else None
+                self._last_process.wait(timeout=timeout)
+                self._last_process = None
+                return True
+            except Exception:
+                return False
+        return True
 
     # Rate
     @property
