@@ -54,12 +54,14 @@ class TestUniversalSpeechAPI(unittest.TestCase):
         self.speech.braille("Test braille")
 
     def test_speech_combined(self):
-        self.speech.speech("Test combined speech and braille")
+        self.speech.speech("Test combined speech and braille", interrupt=True)
+        self.speech.speech("Test combined without interrupt", interrupt=False)
         self.speech.stop()
 
     def test_speech_a_method(self):
         # speech_a should execute say_a and braille without AttributeError
-        self.speech.speech_a("Test speech_a")
+        self.speech.speech_a("Test speech_a", interrupt=True)
+        self.speech.speech_a("Test speech_a non-interrupt", interrupt=False)
         self.speech.stop()
 
     def test_get_and_set_value(self):

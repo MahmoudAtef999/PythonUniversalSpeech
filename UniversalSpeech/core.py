@@ -74,15 +74,28 @@ class UniversalSpeech:
         """Display the given message in braille."""
         return self.__uspeech.brailleDisplay(msg)
 
-    def speech(self, msg: str) -> None:
-        """Perform both speech and braille display for the given message."""
-        self.say(msg)
+    def speech(self, msg: str, interrupt: bool = True) -> None:
+        """
+        Perform both speech and braille display for the given message.
+
+        Parameters:
+        - msg (str): The complete message to be spoken and displayed in braille.
+        - interrupt (bool): Whether to interrupt current speech if True (default is True).
+        """
+        self.say(msg, interrupt=interrupt)
         self.braille(msg)
 
-    def speech_a(self, msg: str) -> None:
-        """Perform speech_a and braille display for the given message."""
-        self.say_a(msg)
-        self.braille(msg)
+    def speech_a(self, msg: Union[str, bytes], interrupt: bool = True) -> None:
+        """
+        Perform ANSI speech (speechSayA) and braille display for the given message.
+
+        Parameters:
+        - msg (Union[str, bytes]): The message to be spoken and displayed in braille.
+        - interrupt (bool): Whether to interrupt current speech if True (default is True).
+        """
+        self.say_a(msg, interrupt=interrupt)
+        braille_msg = msg.decode("mbcs", errors="replace") if isinstance(msg, bytes) else msg
+        self.braille(braille_msg)
 
     def stop(self):
         """Stop the speech."""
