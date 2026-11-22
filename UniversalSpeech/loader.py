@@ -21,6 +21,9 @@ class Loader:
         __lib_folder (str): The folder name based on the system architecture.
     """
 
+    _cached_instance: Optional[ctypes.CDLL] = None
+    _dll_directory_handle: Optional[object] = None
+
     def __init__(self) -> None:
         self.__current_dir = os.path.dirname(os.path.abspath(__file__))
         self.__dll_files = [
@@ -33,7 +36,6 @@ class Loader:
         ]
         # sys.maxsize > 2**32 reliably detects 64-bit Python across platforms
         self.__lib_folder = "lib64" if sys.maxsize > 2**32 else "lib"
-        self.__dll_directory_handle = None
 
     def _files_check(self) -> bool:
         """
@@ -72,12 +74,15 @@ class Loader:
         if not self._files_check():
             raise DLLFileNotFoundError("Missing dll files.")
 
+        if Loader._cached_instance is not None:
+            return Loader._cached_instance
+
         lib_folder = os.path.join(self.__current_dir, self.__lib_folder)
 
         # On Windows with Python 3.8+, add the directory containing dependencies to the DLL search path
-        if hasattr(os, "add_dll_directory") and os.path.isdir(lib_folder):
+        if hasattr(os, "add_dll_directory") and os.path.isdir(lib_folder) and Loader._dll_directory_handle is None:
             try:
-                self.__dll_directory_handle = os.add_dll_directory(lib_folder)
+                Loader._dll_directory_handle = os.add_dll_directory(lib_folder)
             except OSError:
                 pass
 
@@ -88,7 +93,13 @@ class Loader:
         # Configure ctypes signatures for core speech functions
         self._configure_signatures(uspeech)
 
+        Loader._cached_instance = uspeech
         return uspeech
+
+    @classmethod
+    def _clear_cache(cls) -> None:
+        """Clear cached CDLL instance for testing purposes."""
+        cls._cached_instance = None
 
     @staticmethod
     def _configure_signatures(uspeech: ctypes.CDLL) -> None:

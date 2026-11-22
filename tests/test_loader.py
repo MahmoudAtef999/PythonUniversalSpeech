@@ -22,6 +22,13 @@ class TestLoader(unittest.TestCase):
         uspeech = loader.load()
         self.assertIsInstance(uspeech, ctypes.CDLL)
 
+    def test_load_cached_instance(self):
+        loader1 = Loader()
+        loader2 = Loader()
+        uspeech1 = loader1.load()
+        uspeech2 = loader2.load()
+        self.assertIs(uspeech1, uspeech2)
+
     def test_missing_dll_raises_error(self):
         loader = Loader()
         # Simulate a missing required DLL by adding a non-existent file to the required list
