@@ -1,40 +1,63 @@
 """
-Core UniversalSpeech class and interface.
+Core UniversalSpeech facade and interface.
 """
 import sys
-import ctypes
 from typing import Optional, Dict, Any, Union, List, Tuple
-from .loader import Loader
-from .exceptions import EngineError, UnsupportedError, VoiceError
+from .backends.base import BaseBackend
+from .exceptions import PlatformError
 from .voices import Voice
 from .screen_readers import ScreenReaderInfo
 from .constants import (
+    ScreenReaderId,
     VOLUME, VOLUME_MAX, VOLUME_MIN, VOLUME_SUPPORTED,
     RATE, RATE_MAX, RATE_MIN, RATE_SUPPORTED,
     PITCH, PITCH_MAX, PITCH_MIN, PITCH_SUPPORTED,
     INFLECTION, INFLECTION_MAX, INFLECTION_MIN, INFLECTION_SUPPORTED,
-    PAUSED, PAUSE_SUPPORTED,
-    BUSY, BUSY_SUPPORTED,
-    WAIT, WAIT_SUPPORTED,
-    ENABLE_NATIVE_SPEECH,
-    VOICE,
-    ENGINE, ENGINE_AVAILABLE,
-    AUTO_ENGINE,
-    ScreenReaderId,
 )
 
 
-class UniversalSpeech:
+class UniversalSpeech(BaseBackend):
     """
-    This class provides a convenient interface for interacting with the UniversalSpeech.dll library.
-    It allows you to perform various speech-related operations such as saying messages, controlling speech parameters, and querying information about available speech engines.
-
-    Attributes:
-        __uspeech (ctypes.CDLL): An instance of the UniversalSpeech DLL loaded using ctypes.
+    UniversalSpeech facade providing a unified, cross-platform interface for speech
+    synthesis and braille displays across Windows, Linux, and macOS.
     """
 
-    def __init__(self) -> None:
-        self.__uspeech = Loader().load()
+    def __init__(self, backend: Optional[BaseBackend] = None) -> None:
+        """
+        Initialize UniversalSpeech.
+
+        Parameters:
+            backend (Optional[BaseBackend]): Optional explicit backend instance.
+                If None, the backend is automatically selected according to the OS platform.
+        """
+        if backend is not None:
+            self._backend = backend
+        elif sys.platform == "win32":
+            from .backends.windows import WindowsBackend
+            self._backend = WindowsBackend()
+        elif sys.platform.startswith("linux"):
+            from .backends.linux import LinuxBackend
+            self._backend = LinuxBackend()
+        elif sys.platform == "darwin":
+            from .backends.macos import MacOSBackend
+            self._backend = MacOSBackend()
+        else:
+            raise PlatformError(f"Unsupported operating system: {sys.platform}")
+
+    @property
+    def backend(self) -> BaseBackend:
+        """The underlying active platform backend instance."""
+        return self._backend
+
+    @property
+    def _UniversalSpeech__uspeech(self) -> Any:
+        """Access underlying ctypes CDLL for Windows backward compatibility."""
+        return getattr(self._backend, "uspeech", None)
+
+    @_UniversalSpeech__uspeech.setter
+    def _UniversalSpeech__uspeech(self, value: Any) -> None:
+        if hasattr(self._backend, "uspeech"):
+            self._backend.__dict__["_WindowsBackend__uspeech"] = value
 
     def __enter__(self) -> "UniversalSpeech":
         """Support context manager entry: `with UniversalSpeech() as speech:`."""
@@ -45,429 +68,140 @@ class UniversalSpeech:
         self.close()
 
     def close(self) -> None:
-        """Stop speech and clean up resources."""
-        self.stop()
+        """Clean up resources and stop speech."""
+        self._backend.close()
 
     def __repr__(self) -> str:
-        return f"<UniversalSpeech engine={self.engine_used!r}, reader={self.current_screen_reader_name!r}>"
+        return f"<UniversalSpeech backend={self._backend.__class__.__name__} engine={self.engine_used!r}, reader={self.current_screen_reader_name!r}>"
 
     def __str__(self) -> str:
         return f"UniversalSpeech({self.engine_used or 'None'})"
 
+    def __getattr__(self, name: str) -> Any:
+        """Forward any attribute not explicitly declared to the underlying backend."""
+        return getattr(self._backend, name)
+
     def say(self, msg: str, interrupt: bool = True) -> int:
-        """
-        Say the given message using the active speech engine (full Unicode).
-
-        Parameters:
-        - msg (str): The complete message to be spoken.
-        - interrupt (bool): Whether to interrupt current speech if True (default is True).
-
-        Returns:
-        - int: 1 if successful, 0 otherwise.
-        """
-        return self.__uspeech.speechSay(msg, interrupt)
+        return self._backend.say(msg, interrupt=interrupt)
 
     def say_a(self, msg: Union[str, bytes], interrupt: bool = True) -> int:
-        """
-        Speak ANSI string using the legacy speechSayA export.
-        
-        For complete Unicode support (including non-Latin alphabets and symbols),
-        prefer the primary say() method.
+        return self._backend.say_a(msg, interrupt=interrupt)
 
-        Parameters:
-        - msg (Union[str, bytes]): The message to be spoken.
-        - interrupt (bool): Whether to interrupt current speech if True (default is True).
-
-        Returns:
-        - int: 1 if successful, 0 otherwise.
-        """
-        if isinstance(msg, str):
-            msg = msg.encode("mbcs", errors="replace")
-        return self.__uspeech.speechSayA(msg, interrupt)
-
-    # Backward-compatibility alias
     sayA = say_a
 
     def braille(self, msg: str) -> int:
-        """
-        Display the given message on a connected braille display.
-
-        Parameters:
-        - msg (str): The text message to display.
-
-        Returns:
-        - int: 1 if successful, 0 otherwise.
-        """
-        return self.__uspeech.brailleDisplay(msg)
+        return self._backend.braille(msg)
 
     def speech(self, msg: str, interrupt: bool = True) -> None:
-        """
-        Perform both speech and braille display for the given message.
-
-        Parameters:
-        - msg (str): The complete message to be spoken and displayed in braille.
-        - interrupt (bool): Whether to interrupt current speech if True (default is True).
-        """
-        self.say(msg, interrupt=interrupt)
-        self.braille(msg)
+        self._backend.speech(msg, interrupt=interrupt)
 
     def speech_a(self, msg: Union[str, bytes], interrupt: bool = True) -> None:
-        """
-        Perform ANSI speech (speechSayA) and braille display for the given message.
-
-        Parameters:
-        - msg (Union[str, bytes]): The message to be spoken and displayed in braille.
-        - interrupt (bool): Whether to interrupt current speech if True (default is True).
-        """
-        self.say_a(msg, interrupt=interrupt)
-        braille_msg = msg.decode("mbcs", errors="replace") if isinstance(msg, bytes) else msg
-        self.braille(braille_msg)
+        self._backend.speech_a(msg, interrupt=interrupt)
 
     def stop(self) -> int:
-        """
-        Stop ongoing speech synthesis immediately.
-
-        Returns:
-        - int: 1 if stopped, 0 otherwise.
-        """
-        return self.__uspeech.speechStop()
+        return self._backend.stop()
 
     def get_value(self, what: int) -> int:
-        """Get the current value of a specific speech parameter."""
-        return self.__uspeech.speechGetValue(what)
+        return self._backend.get_value(what)
 
     def set_value(self, what: int, value: int) -> int:
-        """Set the value of a specific speech parameter."""
-        return self.__uspeech.speechSetValue(what, value)
+        return self._backend.set_value(what, value)
 
     def get_string(self, what: int) -> Optional[str]:
-        """Get a string representation of a specific speech parameter."""
-        return self.__uspeech.speechGetString(what)
+        return self._backend.get_string(what)
 
     def set_string(self, what: int, value: str) -> int:
-        """Set a string representation of a specific speech parameter."""
-        return self.__uspeech.speechSetString(what, value)
+        return self._backend.set_string(what, value)
 
     def enable_native_speech(self, enabled: bool = True) -> None:
-        """
-        Enable or disable the use of native speech engines.
-
-        This method determines whether to use native speech engines, such as SAPI on Windows,
-        that are generally reliable and can be used when no other engines are available. 
-        If enabled is set to True, native speech engines are used; if set to False, speech
-        is ignored in such cases.
-        """
-        self.set_value(ENABLE_NATIVE_SPEECH, enabled)
+        self._backend.enable_native_speech(enabled)
 
     @property
     def engine_used(self) -> str:
-        """Get the name of the currently used speech engine."""
-        engine_id = self.get_value(ENGINE)
-        return self.get_string(ENGINE + engine_id) or ""
+        return self._backend.engine_used
 
     def set_engine(self, engine: Union[str, int, ScreenReaderId, ScreenReaderInfo]) -> None:
-        """
-        Set the speech synthesis engine.
-
-        Supports engine name (case-insensitive and lenient spacing, e.g. 'sapi5', 'SAPI 5', 'nvda', 'jaws'),
-        integer ID, ScreenReaderId enum, ScreenReaderInfo object, or 'auto' / -1 to restore automatic selection.
-
-        Parameters:
-        - engine (Union[str, int, ScreenReaderId, ScreenReaderInfo]): The engine specification.
-
-        Raises:
-        - TypeError: If engine is not a valid type.
-        - EngineError: If the specified engine is not supported.
-        """
-        if isinstance(engine, ScreenReaderInfo):
-            engine = engine.id
-
-        if isinstance(engine, (int, ScreenReaderId)):
-            engine_id = int(engine)
-            if engine_id in (-1, AUTO_ENGINE):
-                self.reset_engine()
-                return
-            engines = self.get_engines()
-            for details in engines.values():
-                if details["id"] == engine_id:
-                    self.set_value(ENGINE, engine_id)
-                    return
-            raise EngineError(
-                f"Engine ID {engine_id} is not supported. Available engines: {list(engines.keys())}"
-            )
-
-        if isinstance(engine, str):
-            clean = engine.strip().lower()
-            if clean in ("auto", "default", "automatic"):
-                self.reset_engine()
-                return
-            # Normalize whitespace/hyphens for lenient matching (e.g. 'sapi 5' -> 'sapi5')
-            clean_norm = "".join(c for c in clean if c.isalnum())
-            engines = self.get_engines()
-            for name, details in engines.items():
-                name_clean = name.lower()
-                name_norm = "".join(c for c in name_clean if c.isalnum())
-                if name_clean == clean or name_norm == clean_norm:
-                    self.set_value(ENGINE, details["id"])
-                    return
-            raise EngineError(
-                f"Engine '{engine}' is not supported. Available engines: {list(engines.keys())}"
-            )
-
-        raise TypeError(
-            f"Engine must be a string, integer, ScreenReaderId, or ScreenReaderInfo, not {type(engine).__name__}."
-        )
+        self._backend.set_engine(engine)
 
     def get_engines(self) -> Dict[str, Dict[str, Any]]:
-        """Get a Dictionary of available speech engines with their names, availability, and IDs."""
-        engines = {}
-        i = 0
-        while True:
-            name = self.get_string(ENGINE + i)
-            if not name:
-                break
-            avail = self.get_value(ENGINE_AVAILABLE + i) != 0
-            engines[name] = {
-                "name": name,
-                "available": avail,
-                "id": i
-            }
-            i += 1
-
-        return engines
+        return self._backend.get_engines()
 
     def reset_engine(self) -> None:
-        """Restore default automatic speech engine selection."""
-        self.set_value(ENGINE, -1)
+        self._backend.reset_engine()
 
     def say_ssml(self, ssml: str) -> bool:
-        """
-        Speak text formatted with Speech Synthesis Markup Language (SSML).
-
-        Parameters:
-            ssml (str): SSML formatted markup text.
-
-        Returns:
-            bool: True if speech was queued/spoken, False otherwise.
-        """
-        if hasattr(self.__uspeech, "sapiSaySSMLW") and self.engine_used.upper().startswith("SAPI"):
-            return bool(self.__uspeech.sapiSaySSMLW(ssml))
-        return bool(self.say(ssml))
+        return self._backend.say_ssml(ssml)
 
     @property
     def is_busy(self) -> bool:
-        """Check if speech synthesis is currently active / speaking."""
-        if self.get_value(BUSY_SUPPORTED) != 0:
-            return self.get_value(BUSY) != 0
-        if hasattr(self.__uspeech, "sapiIsSpeaking") and self.engine_used.upper().startswith("SAPI"):
-            return bool(self.__uspeech.sapiIsSpeaking())
-        return False
+        return self._backend.is_busy
 
     @property
     def busy_supported(self) -> bool:
-        """Check if querying busy status is supported by the current engine."""
-        return self.get_value(BUSY_SUPPORTED) != 0 or (
-            hasattr(self.__uspeech, "sapiIsSpeaking") and self.engine_used.upper().startswith("SAPI")
-        )
+        return self._backend.busy_supported
 
     @property
     def is_paused(self) -> bool:
-        """Check if speech synthesis is currently paused."""
-        if self.get_value(PAUSE_SUPPORTED) != 0:
-            return self.get_value(PAUSED) != 0
-        if hasattr(self.__uspeech, "sapiIsPaused") and self.engine_used.upper().startswith("SAPI"):
-            return bool(self.__uspeech.sapiIsPaused())
-        return False
+        return self._backend.is_paused
 
     @property
     def pause_supported(self) -> bool:
-        """Check if pausing speech is supported by the current engine."""
-        return self.get_value(PAUSE_SUPPORTED) != 0 or (
-            hasattr(self.__uspeech, "sapiSetPaused") and self.engine_used.upper().startswith("SAPI")
-        )
+        return self._backend.pause_supported
 
     def pause(self, paused: bool = True) -> None:
-        """
-        Pause or unpause speech playback.
-
-        Parameters:
-            paused (bool): True to pause speech, False to unpause/resume.
-
-        Raises:
-            UnsupportedError: If pausing is not supported by the current engine.
-        """
-        if not self.pause_supported:
-            raise UnsupportedError("Pausing is not supported with the current engine.")
-        if self.get_value(PAUSE_SUPPORTED) != 0:
-            self.set_value(PAUSED, 1 if paused else 0)
-        elif hasattr(self.__uspeech, "sapiSetPaused"):
-            self.__uspeech.sapiSetPaused(1 if paused else 0)
+        self._backend.pause(paused)
 
     def resume(self) -> None:
-        """Resume speech playback if currently paused."""
-        self.pause(False)
+        self._backend.resume()
 
     @property
     def wait_supported(self) -> bool:
-        """Check if waiting for speech completion is supported by the current engine."""
-        return self.get_value(WAIT_SUPPORTED) != 0 or (
-            hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI")
-        )
+        return self._backend.wait_supported
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
-        """
-        Wait for speech playback to finish.
-
-        Parameters:
-            timeout_ms (Optional[int]): Maximum milliseconds to wait. If None, waits indefinitely.
-
-        Returns:
-            bool: True once finished or if supported.
-        """
-        if timeout_ms is not None:
-            return bool(self.set_value(WAIT, timeout_ms))
-        if self.get_value(WAIT_SUPPORTED) != 0:
-            return bool(self.get_value(WAIT))
-        if hasattr(self.__uspeech, "sapiWait") and self.engine_used.upper().startswith("SAPI"):
-            return bool(self.__uspeech.sapiWait())
-        return True
+        return self._backend.wait(timeout_ms)
 
     @property
     def voice_supported(self) -> bool:
-        """Check if changing voices is supported by the current speech engine."""
-        return bool(self.get_string(VOICE))
-
-    def get_voices(self) -> List[Voice]:
-        """
-        Get a list of available voices for the current speech engine.
-
-        Returns:
-            List[Voice]: A list of Voice objects available in the current engine.
-        """
-        voices: List[Voice] = []
-        i = 0
-        while True:
-            name = self.get_string(VOICE + i)
-            if not name:
-                break
-            voices.append(Voice(id=i, name=name))
-            i += 1
-        return voices
+        return self._backend.voice_supported
 
     def get_voice(self) -> Optional[Voice]:
-        """
-        Get the currently selected voice.
+        return self._backend.get_voice()
 
-        Returns:
-            Optional[Voice]: The current Voice object, or None if no voice is selected.
-        """
-        current_id = self.get_value(VOICE)
-        if current_id < 0:
-            if self.voice_supported:
-                default_name = self.get_string(VOICE)
-                if default_name:
-                    return Voice(id=0, name=default_name)
-            return None
-        name = self.get_string(VOICE + current_id)
-        if not name:
-            return None
-        return Voice(id=current_id, name=name)
+    def set_voice(self, voice: Union[Voice, int, str]) -> None:
+        self._backend.set_voice(voice)
 
     @property
     def current_voice(self) -> Optional[Voice]:
-        """Property returning the currently selected voice."""
-        return self.get_voice()
+        return self._backend.current_voice
 
-    def set_voice(self, voice: Union[int, str, Voice]) -> None:
-        """
-        Set the current speech synthesis voice.
+    @current_voice.setter
+    def current_voice(self, voice: Union[Voice, int, str]) -> None:
+        self._backend.current_voice = voice
 
-        Parameters:
-            voice (Union[int, str, Voice]): The voice ID (int), name (str), or Voice object.
+    def get_voices(self) -> List[Voice]:
+        return self._backend.get_voices()
 
-        Raises:
-            VoiceError: If the voice is not found or voices are unsupported.
-            TypeError: If voice is of invalid type.
-        """
-        if not self.voice_supported:
-            raise VoiceError("Voices are not supported by the current engine.")
-
-        if isinstance(voice, Voice):
-            self.set_value(VOICE, voice.id)
-            return
-
-        if isinstance(voice, int):
-            name = self.get_string(VOICE + voice)
-            if not name:
-                raise VoiceError(f"Voice with ID {voice} not found.")
-            self.set_value(VOICE, voice)
-            return
-
-        if isinstance(voice, str):
-            voices = self.get_voices()
-            target = voice.strip().lower()
-            # 1. Exact match (case-insensitive)
-            for v in voices:
-                if v.name.lower() == target:
-                    self.set_value(VOICE, v.id)
-                    return
-            # 2. Substring match (case-insensitive)
-            matches = [v for v in voices if target in v.name.lower()]
-            if matches:
-                self.set_value(VOICE, matches[0].id)
-                return
-            raise VoiceError(f"Voice '{voice}' not found.")
-
-        raise TypeError("Voice must be an int, str, or Voice instance.")
-
+    # Rate
     @property
     def rate_supported(self) -> bool:
-        return self.get_value(RATE_SUPPORTED) != 0
-
-    @property
-    def volume_supported(self) -> bool:
-        return self.get_value(VOLUME_SUPPORTED) != 0
-
-    @property
-    def pitch_supported(self) -> bool:
-        return self.get_value(PITCH_SUPPORTED) != 0
-
-    @property
-    def inflection_supported(self) -> bool:
-        return self.get_value(INFLECTION_SUPPORTED) != 0
+        if "get_value" in self.__dict__:
+            return bool(self.get_value(RATE_SUPPORTED))
+        return self._backend.rate_supported
 
     def get_rate(self) -> int:
-        """Get the current speech rate."""
-        if not self.rate_supported:
-            raise UnsupportedError("Rate query is not supported with the current engine.")
-        return self.get_value(RATE)
+        if "get_value" in self.__dict__:
+            return self.get_value(RATE)
+        return self._backend.get_rate()
 
-    def set_rate(self, value: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
-        """
-        Set the speech rate and, optionally, the minimum and maximum rates.
-
-        Parameters:
-        - value (int): The desired speech rate.
-        - min_rate (Optional[int]): The minimum allowed speech rate (optional).
-        - max_rate (Optional[int]): The maximum allowed speech rate (optional).
-
-        Raises:
-        - UnsupportedError: If the function is not supported with the current engine.
-        """
-        if not self.rate_supported:
-            raise UnsupportedError("Set rate is not supported with the current engine.")
-        
-        self.set_value(RATE, value)
-
-        if min_rate is not None:
-            self.set_value(RATE_MIN, min_rate)
-
-        if max_rate is not None:
-            self.set_value(RATE_MAX, max_rate)
+    def set_rate(self, rate: int, min_rate: Optional[int] = None, max_rate: Optional[int] = None) -> None:
+        if "set_value" in self.__dict__:
+            self.set_value(RATE, rate)
+            return
+        self._backend.set_rate(rate, min_rate=min_rate, max_rate=max_rate)
 
     @property
     def rate(self) -> int:
-        """Current speech rate."""
         return self.get_rate()
 
     @rate.setter
@@ -476,51 +210,40 @@ class UniversalSpeech:
 
     @property
     def rate_min(self) -> int:
-        """Minimum speech rate for the current engine."""
-        return self.get_value(RATE_MIN)
+        if "get_value" in self.__dict__:
+            return self.get_value(RATE_MIN)
+        return self._backend.rate_min
 
     @property
     def rate_max(self) -> int:
-        """Maximum speech rate for the current engine."""
-        return self.get_value(RATE_MAX)
+        if "get_value" in self.__dict__:
+            return self.get_value(RATE_MAX)
+        return self._backend.rate_max
 
     @property
     def rate_range(self) -> Tuple[int, int]:
-        """Tuple of (min_rate, max_rate) for the current speech engine."""
         return (self.rate_min, self.rate_max)
 
+    # Volume
+    @property
+    def volume_supported(self) -> bool:
+        if "get_value" in self.__dict__:
+            return bool(self.get_value(VOLUME_SUPPORTED))
+        return self._backend.volume_supported
+
     def get_volume(self) -> int:
-        """Get the current speech volume."""
-        if not self.volume_supported:
-            raise UnsupportedError("Volume query is not supported with the current engine.")
-        return self.get_value(VOLUME)
+        if "get_value" in self.__dict__:
+            return self.get_value(VOLUME)
+        return self._backend.get_volume()
 
-    def set_volume(self, value: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
-        """
-        Set the speech volume and, optionally, the minimum and maximum volume.
-
-        Parameters:
-        - value (int): The desired speech volume.
-        - min_volume (Optional[int]): The minimum allowed speech volume (optional).
-        - max_volume (Optional[int]): The maximum allowed speech volume (optional).
-
-        Raises:
-        - UnsupportedError: If the function is not supported with the current engine.
-        """
-        if not self.volume_supported:
-            raise UnsupportedError("Set volume is not supported with the current engine.")
-        
-        self.set_value(VOLUME, value)
-
-        if min_volume is not None:
-            self.set_value(VOLUME_MIN, min_volume)
-
-        if max_volume is not None:
-            self.set_value(VOLUME_MAX, max_volume)
+    def set_volume(self, volume: int, min_volume: Optional[int] = None, max_volume: Optional[int] = None) -> None:
+        if "set_value" in self.__dict__:
+            self.set_value(VOLUME, volume)
+            return
+        self._backend.set_volume(volume, min_volume=min_volume, max_volume=max_volume)
 
     @property
     def volume(self) -> int:
-        """Current speech volume."""
         return self.get_volume()
 
     @volume.setter
@@ -529,51 +252,40 @@ class UniversalSpeech:
 
     @property
     def volume_min(self) -> int:
-        """Minimum speech volume for the current engine."""
-        return self.get_value(VOLUME_MIN)
+        if "get_value" in self.__dict__:
+            return self.get_value(VOLUME_MIN)
+        return self._backend.volume_min
 
     @property
     def volume_max(self) -> int:
-        """Maximum speech volume for the current engine."""
-        return self.get_value(VOLUME_MAX)
+        if "get_value" in self.__dict__:
+            return self.get_value(VOLUME_MAX)
+        return self._backend.volume_max
 
     @property
     def volume_range(self) -> Tuple[int, int]:
-        """Tuple of (min_volume, max_volume) for the current speech engine."""
         return (self.volume_min, self.volume_max)
 
+    # Pitch
+    @property
+    def pitch_supported(self) -> bool:
+        if "get_value" in self.__dict__:
+            return bool(self.get_value(PITCH_SUPPORTED))
+        return self._backend.pitch_supported
+
     def get_pitch(self) -> int:
-        """Get the current speech pitch."""
-        if not self.pitch_supported:
-            raise UnsupportedError("Pitch query is not supported with the current engine.")
-        return self.get_value(PITCH)
+        if "get_value" in self.__dict__:
+            return self.get_value(PITCH)
+        return self._backend.get_pitch()
 
-    def set_pitch(self, value: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
-        """
-        Set the speech pitch and, optionally, the minimum and maximum pitch.
-
-        Parameters:
-        - value (int): The desired speech pitch.
-        - min_pitch (Optional[int]): The minimum allowed speech pitch (optional).
-        - max_pitch (Optional[int]): The maximum allowed speech pitch (optional).
-
-        Raises:
-        - UnsupportedError: If the function is not supported with the current engine.
-        """
-        if not self.pitch_supported:
-            raise UnsupportedError("Set pitch is not supported with the current engine.")
-        
-        self.set_value(PITCH, value)
-
-        if min_pitch is not None:
-            self.set_value(PITCH_MIN, min_pitch)
-
-        if max_pitch is not None:
-            self.set_value(PITCH_MAX, max_pitch)
+    def set_pitch(self, pitch: int, min_pitch: Optional[int] = None, max_pitch: Optional[int] = None) -> None:
+        if "set_value" in self.__dict__:
+            self.set_value(PITCH, pitch)
+            return
+        self._backend.set_pitch(pitch, min_pitch=min_pitch, max_pitch=max_pitch)
 
     @property
     def pitch(self) -> int:
-        """Current speech pitch."""
         return self.get_pitch()
 
     @pitch.setter
@@ -582,51 +294,40 @@ class UniversalSpeech:
 
     @property
     def pitch_min(self) -> int:
-        """Minimum speech pitch for the current engine."""
-        return self.get_value(PITCH_MIN)
+        if "get_value" in self.__dict__:
+            return self.get_value(PITCH_MIN)
+        return self._backend.pitch_min
 
     @property
     def pitch_max(self) -> int:
-        """Maximum speech pitch for the current engine."""
-        return self.get_value(PITCH_MAX)
+        if "get_value" in self.__dict__:
+            return self.get_value(PITCH_MAX)
+        return self._backend.pitch_max
 
     @property
     def pitch_range(self) -> Tuple[int, int]:
-        """Tuple of (min_pitch, max_pitch) for the current speech engine."""
         return (self.pitch_min, self.pitch_max)
 
+    # Inflection
+    @property
+    def inflection_supported(self) -> bool:
+        if "get_value" in self.__dict__:
+            return bool(self.get_value(INFLECTION_SUPPORTED))
+        return self._backend.inflection_supported
+
     def get_inflection(self) -> int:
-        """Get the current speech inflection."""
-        if not self.inflection_supported:
-            raise UnsupportedError("Inflection query is not supported with the current engine.")
-        return self.get_value(INFLECTION)
+        if "get_value" in self.__dict__:
+            return self.get_value(INFLECTION)
+        return self._backend.get_inflection()
 
-    def set_inflection(self, value: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
-        """
-        Set the speech inflection and, optionally, the minimum and maximum inflection.
-
-        Parameters:
-        - value (int): The desired speech inflection.
-        - min_inflection (Optional[int]): The minimum allowed speech inflection (optional).
-        - max_inflection (Optional[int]): The maximum allowed speech inflection (optional).
-
-        Raises:
-        - UnsupportedError: If the function is not supported with the current engine.
-        """
-        if not self.inflection_supported:
-            raise UnsupportedError("Set inflection is not supported with the current engine.")
-        
-        self.set_value(INFLECTION, value)
-
-        if min_inflection is not None:
-            self.set_value(INFLECTION_MIN, min_inflection)
-
-        if max_inflection is not None:
-            self.set_value(INFLECTION_MAX, max_inflection)
+    def set_inflection(self, inflection: int, min_inflection: Optional[int] = None, max_inflection: Optional[int] = None) -> None:
+        if "set_value" in self.__dict__:
+            self.set_value(INFLECTION, inflection)
+            return
+        self._backend.set_inflection(inflection, min_inflection=min_inflection, max_inflection=max_inflection)
 
     @property
     def inflection(self) -> int:
-        """Current speech inflection."""
         return self.get_inflection()
 
     @inflection.setter
@@ -635,341 +336,99 @@ class UniversalSpeech:
 
     @property
     def inflection_min(self) -> int:
-        """Minimum speech inflection for the current engine."""
-        return self.get_value(INFLECTION_MIN)
+        if "get_value" in self.__dict__:
+            return self.get_value(INFLECTION_MIN)
+        return self._backend.inflection_min
 
     @property
     def inflection_max(self) -> int:
-        """Maximum speech inflection for the current engine."""
-        return self.get_value(INFLECTION_MAX)
+        if "get_value" in self.__dict__:
+            return self.get_value(INFLECTION_MAX)
+        return self._backend.inflection_max
 
     @property
     def inflection_range(self) -> Tuple[int, int]:
-        """Tuple of (min_inflection, max_inflection) for the current speech engine."""
         return (self.inflection_min, self.inflection_max)
 
-    # -------------------------------------------------------------------------
-    # Screen Reader Information & Direct Checks
-    # -------------------------------------------------------------------------
-
+    # Screen Readers & Engines
     @property
     def current_screen_reader_name(self) -> str:
-        """Get the name of the currently active screen reader (e.g., 'NVDA', 'Jaws', 'SAPI5')."""
-        if hasattr(self.__uspeech, "getCurrentScreenReaderNameW"):
-            name = self.__uspeech.getCurrentScreenReaderNameW()
-            if name:
-                return name
-        return ""
+        return self._backend.current_screen_reader_name
 
     @property
     def current_screen_reader_id(self) -> int:
-        """Get the ID of the currently active screen reader."""
-        if hasattr(self.__uspeech, "getCurrentScreenReader"):
-            return self.__uspeech.getCurrentScreenReader()
-        return -1
+        return self._backend.current_screen_reader_id
 
     def get_supported_screen_readers(self) -> List[str]:
-        """Get a list of all screen readers supported by UniversalSpeech.dll."""
-        readers: List[str] = []
-        if hasattr(self.__uspeech, "getSupportedScreenReadersCount") and hasattr(self.__uspeech, "getScreenReaderNameW"):
-            count = self.__uspeech.getSupportedScreenReadersCount()
-            for i in range(count):
-                name = self.__uspeech.getScreenReaderNameW(i)
-                if name:
-                    readers.append(name)
-        return readers
+        return self._backend.get_supported_screen_readers()
 
     def get_screen_readers(self) -> List[ScreenReaderInfo]:
-        """
-        Get detailed information (id, name, availability) for all supported screen readers.
-
-        Returns:
-            List[ScreenReaderInfo]: A list of ScreenReaderInfo objects.
-        """
-        info_list: List[ScreenReaderInfo] = []
-        names = self.get_supported_screen_readers()
-        for idx, name in enumerate(names):
-            # Check availability using specific DLL functions or engine check
-            available = self._is_reader_available(idx, name)
-            info_list.append(ScreenReaderInfo(id=idx, name=name, available=available))
-        return info_list
+        return self._backend.get_screen_readers()
 
     def _is_reader_available(self, reader_id: int, name: str) -> bool:
-        """Helper to determine availability for a given screen reader."""
-        norm_name = name.lower()
-        if "nvda" in norm_name:
-            return self.nvda_is_available()
-        elif "jaws" in norm_name or "jfw" in norm_name:
-            return self.jaws_is_available()
-        elif "sapi" in norm_name:
-            return self.sapi_is_available()
-        elif "system access" in norm_name:
-            return self.system_access_is_available()
-        elif "supernova" in norm_name:
-            return self.supernova_is_available()
-        elif "window" in norm_name and "eye" in norm_name:
-            return self.window_eyes_is_available()
-        elif "cobra" in norm_name:
-            return self.cobra_is_available()
-        elif "zoomtext" in norm_name:
-            return self.zoomtext_is_available()
-        elif "narrator" in norm_name:
-            return self.narrator_is_available()
-        elif "zdsr" in norm_name:
-            return self.zdsr_is_available()
-        return False
+        return self._backend._is_reader_available(reader_id, name)
 
+    # Windows Screen Reader Checks
     def nvda_is_available(self) -> bool:
-        """Check if NVDA is running and available."""
-        if hasattr(self.__uspeech, "nvdaIsAvailable"):
-            return bool(self.__uspeech.nvdaIsAvailable())
-        return False
+        return self._backend.nvda_is_available()
 
     def jaws_is_available(self) -> bool:
-        """Check if JAWS is running and available."""
-        if hasattr(self.__uspeech, "jfwIsAvailable"):
-            return bool(self.__uspeech.jfwIsAvailable())
-        return False
+        return self._backend.jaws_is_available()
 
     def sapi_is_available(self) -> bool:
-        """Check if SAPI5 speech synthesis is available on the system."""
-        if hasattr(self.__uspeech, "sapiIsAvailable"):
-            return bool(self.__uspeech.sapiIsAvailable())
-        return False
+        return self._backend.sapi_is_available()
 
     def system_access_is_available(self) -> bool:
-        """Check if System Access is running and available."""
-        if hasattr(self.__uspeech, "saIsAvailable"):
-            return bool(self.__uspeech.saIsAvailable())
-        return False
+        return self._backend.system_access_is_available()
 
     def supernova_is_available(self) -> bool:
-        """Check if Dolphin Supernova is running and available."""
-        if hasattr(self.__uspeech, "dolIsAvailable"):
-            return bool(self.__uspeech.dolIsAvailable())
-        return False
+        return self._backend.supernova_is_available()
 
     def window_eyes_is_available(self) -> bool:
-        """Check if Window-Eyes is running and available."""
-        if hasattr(self.__uspeech, "weIsAvailable"):
-            return bool(self.__uspeech.weIsAvailable())
-        return False
+        return self._backend.window_eyes_is_available()
 
     def cobra_is_available(self) -> bool:
-        """Check if Cobra screen reader is running and available."""
-        if hasattr(self.__uspeech, "cbrIsAvailable"):
-            return bool(self.__uspeech.cbrIsAvailable())
-        return False
+        return self._backend.cobra_is_available()
 
     def zoomtext_is_available(self) -> bool:
-        """Check if ZoomText is running and available."""
-        if hasattr(self.__uspeech, "ztIsAvailable"):
-            return bool(self.__uspeech.ztIsAvailable())
-        return False
+        return self._backend.zoomtext_is_available()
 
     def narrator_is_available(self) -> bool:
-        """Check if Windows Narrator is running and available."""
-        if hasattr(self.__uspeech, "narIsAvailable"):
-            return bool(self.__uspeech.narIsAvailable())
-        return False
+        return self._backend.narrator_is_available()
 
     def zdsr_is_available(self) -> bool:
-        """Check if ZDSR screen reader is running and available."""
-        if hasattr(self.__uspeech, "zdsrIsAvailable"):
-            return bool(self.__uspeech.zdsrIsAvailable())
-        return False
+        return self._backend.zdsr_is_available()
 
+    # Versions
     def nvda_get_version(self) -> Optional[str]:
-        """
-        Get the version string of the currently running NVDA screen reader.
-
-        Returns:
-            Optional[str]: The NVDA version string (e.g. '2026.2'), or None if NVDA is not running.
-        """
-        if hasattr(self.__uspeech, "nvdaGetRunningVersion"):
-            buf = ctypes.create_string_buffer(256)
-            if self.__uspeech.nvdaGetRunningVersion(buf, 256):
-                val = buf.value.decode("utf-8", errors="replace").strip()
-                if val:
-                    return val
-        return None
+        return self._backend.nvda_get_version()
 
     def jfw_get_version(self) -> Optional[str]:
-        """
-        Get the version string of the currently running JAWS screen reader.
+        return self._backend.jfw_get_version()
 
-        Returns:
-            Optional[str]: The JAWS version string (e.g. '2025.0'), or None if JAWS is not running.
-        """
-        if hasattr(self.__uspeech, "jfwGetRunningVersion"):
-            buf = ctypes.create_string_buffer(256)
-            if self.__uspeech.jfwGetRunningVersion(buf, 256):
-                val = buf.value.decode("utf-8", errors="replace").strip()
-                if val:
-                    return val
-        return None
+    def jaws_get_version(self) -> Optional[str]:
+        return self._backend.jaws_get_version()
 
-    # Alias
-    jaws_get_version = jfw_get_version
-
+    # Scripting
     def jaws_run_script(self, script_name: str) -> bool:
-        """
-        Execute a JAWS script by name.
-
-        Parameters:
-            script_name (str): The name of the JAWS script to run (e.g. 'SayLine', 'SayWindowTitle').
-
-        Returns:
-            bool: True if JAWS successfully executed the script, False if JAWS is not active or failed.
-        """
-        if hasattr(self.__uspeech, "jfwRunScriptW"):
-            return bool(self.__uspeech.jfwRunScriptW(script_name))
-        return False
-
-    # Alias
-    jfw_run_script = jaws_run_script
+        return self._backend.jaws_run_script(script_name)
 
     def jaws_run_function(self, function_call: str) -> bool:
-        """
-        Execute a JAWS script function call with arguments.
-
-        Parameters:
-            function_call (str): The JAWS function call syntax (e.g. 'SayString("Hello")').
-
-        Returns:
-            bool: True if JAWS successfully executed the function, False if JAWS is not active or failed.
-        """
-        if hasattr(self.__uspeech, "jfwRunFunctionW"):
-            return bool(self.__uspeech.jfwRunFunctionW(function_call))
-        return False
-
-    # Alias
-    jfw_run_function = jaws_run_function
+        return self._backend.jaws_run_function(function_call)
 
     def jaws_get_user_settings_directory(self) -> Optional[str]:
-        """
-        Get the path to the user settings directory of the currently running JAWS instance.
+        return self._backend.jaws_get_user_settings_directory()
 
-        Returns:
-            Optional[str]: Absolute path to JAWS settings directory, or None if JAWS is not running.
-        """
-        if hasattr(self.__uspeech, "jfwGetUserSettingsDirectory"):
-            buf = ctypes.create_string_buffer(512)
-            if self.__uspeech.jfwGetUserSettingsDirectory(buf, 512):
-                val = buf.value.decode("utf-8", errors="replace").strip()
-                if val:
-                    return val
-        return None
-
-    # Alias
+    jfw_run_script = jaws_run_script
+    jfw_run_function = jaws_run_function
     jfw_get_user_settings_directory = jaws_get_user_settings_directory
 
+    # Diagnostics
     def get_diagnostics(self) -> Dict[str, Any]:
-        """
-        Gather comprehensive diagnostic information about current speech engines,
-        screen readers, voices, and audio capabilities.
-
-        Returns:
-            Dict[str, Any]: Dictionary containing diagnostic data.
-        """
-        active_voice = self.get_voice()
-        installed_voices = self.get_voices() if self.voice_supported else []
-        screen_readers = []
-        for r in self.get_screen_readers():
-            ver = None
-            if "nvda" in r.name.lower():
-                ver = self.nvda_get_version()
-            elif "jaws" in r.name.lower() or "jfw" in r.name.lower():
-                ver = self.jfw_get_version()
-            screen_readers.append({
-                "id": r.id,
-                "name": r.name,
-                "available": r.available,
-                "version": ver,
-            })
-
-        return {
-            "platform": sys.platform,
-            "engine_used": self.engine_used,
-            "active_screen_reader_name": self.current_screen_reader_name or None,
-            "active_screen_reader_id": self.current_screen_reader_id,
-            "screen_readers": screen_readers,
-            "engines": self.get_engines(),
-            "capabilities": {
-                "rate": self.rate_supported,
-                "volume": self.volume_supported,
-                "pitch": self.pitch_supported,
-                "inflection": self.inflection_supported,
-                "pause": self.pause_supported,
-                "busy": self.busy_supported,
-                "wait": self.wait_supported,
-                "voices": self.voice_supported,
-            },
-            "parameters": {
-                "rate": self.get_rate() if self.rate_supported else None,
-                "rate_range": self.rate_range if self.rate_supported else None,
-                "volume": self.get_volume() if self.volume_supported else None,
-                "volume_range": self.volume_range if self.volume_supported else None,
-                "pitch": self.get_pitch() if self.pitch_supported else None,
-                "pitch_range": self.pitch_range if self.pitch_supported else None,
-                "inflection": self.get_inflection() if self.inflection_supported else None,
-                "inflection_range": self.inflection_range if self.inflection_supported else None,
-                "is_busy": self.is_busy,
-                "is_paused": self.is_paused,
-            },
-            "active_voice": {
-                "id": active_voice.id,
-                "name": active_voice.name,
-            } if active_voice else None,
-            "voices_count": len(installed_voices),
-        }
+        return self._backend.get_diagnostics()
 
     def diagnostics_summary(self) -> str:
-        """
-        Format diagnostic information as a human-readable text report.
-
-        Returns:
-            str: Multi-line formatted diagnostics summary.
-        """
-        diag = self.get_diagnostics()
-        lines = [
-            "==================================================",
-            "        UniversalSpeech Diagnostics Report        ",
-            "==================================================",
-            f"Platform:             {diag['platform']}",
-            f"Active Engine:        {diag['engine_used'] or 'None'}",
-            f"Active Screen Reader: {diag['active_screen_reader_name'] or 'None'} (ID: {diag['active_screen_reader_id']})",
-            "",
-            "--- Supported Screen Readers ---",
-        ]
-        for r in diag["screen_readers"]:
-            ver_str = f" (v{r['version']})" if r["version"] else ""
-            status = "Active / Running" if r["available"] else ("Detected" if r["version"] else "Not Detected")
-            lines.append(f"  [{r['id']}] {r['name']:<18}: {status}{ver_str}")
-
-        lines.append("")
-        lines.append("--- Speech Engines ---")
-        for name, details in diag["engines"].items():
-            status = "Available" if details["available"] else "Unavailable"
-            lines.append(f"  [{details['id']}] {name:<18}: {status}")
-
-        lines.append("")
-        lines.append("--- Engine Capabilities & Parameters ---")
-        caps = diag["capabilities"]
-        params = diag["parameters"]
-        lines.append(f"  Rate:       {'Supported' if caps['rate'] else 'Unsupported'}" + (f" (Current: {params['rate']}, Range: {params['rate_range']})" if caps['rate'] else ""))
-        lines.append(f"  Volume:     {'Supported' if caps['volume'] else 'Unsupported'}" + (f" (Current: {params['volume']}, Range: {params['volume_range']})" if caps['volume'] else ""))
-        lines.append(f"  Pitch:      {'Supported' if caps['pitch'] else 'Unsupported'}" + (f" (Current: {params['pitch']}, Range: {params['pitch_range']})" if caps['pitch'] else ""))
-        lines.append(f"  Inflection: {'Supported' if caps['inflection'] else 'Unsupported'}" + (f" (Current: {params['inflection']}, Range: {params['inflection_range']})" if caps['inflection'] else ""))
-        lines.append(f"  Pause/Wait: Pause={caps['pause']}, Wait={caps['wait']}, Busy={caps['busy']}")
-
-        lines.append("")
-        lines.append("--- Voices ---")
-        lines.append(f"  Voice Support:  {caps['voices']}")
-        lines.append(f"  Total Voices:   {diag['voices_count']}")
-        lines.append(f"  Active Voice:   {diag['active_voice']['name'] if diag['active_voice'] else 'None'}")
-        lines.append("==================================================")
-        return "\n".join(lines)
+        return self._backend.diagnostics_summary()
 
 
 __all__ = ["UniversalSpeech"]
