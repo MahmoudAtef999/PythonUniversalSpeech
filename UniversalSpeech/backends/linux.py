@@ -396,7 +396,7 @@ class LinuxBackend(BaseBackend):
                     spd_vol = int((self._volume - 50) * 2)
                     with self._process_lock:
                         self._last_process = subprocess.Popen(
-                            ["spd-say", "-w", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
+                            ["spd-say", "-r", str(spd_rate), "-p", str(spd_pitch), "-i", str(spd_vol), "--", msg],
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
@@ -501,13 +501,15 @@ class LinuxBackend(BaseBackend):
 
     @property
     def busy_supported(self) -> bool:
-        return bool(self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying")) or bool(self._last_process)
+        return bool(self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"))
 
     @property
     def wait_supported(self) -> bool:
         if self._active_engine_name == "speech-dispatcher" and self._ssip_client and self._ssip_client.is_connected:
             return False
-        return True
+        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
+            return True
+        return False
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
         if not self.wait_supported and not self.busy_supported:
