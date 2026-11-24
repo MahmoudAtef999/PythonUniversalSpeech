@@ -85,6 +85,9 @@ class WindowsBackend(BaseBackend):
     @property
     def engine_used(self) -> str:
         engine_id = self.get_value(ENGINE)
+        if engine_id < 0:
+            # No active engine: ENGINE + (-1) would address the SUBENGINE range.
+            return ""
         return self.get_string(ENGINE + engine_id) or ""
 
     def set_engine(self, engine: Union[str, int, ScreenReaderId, ScreenReaderInfo]) -> None:
@@ -148,7 +151,8 @@ class WindowsBackend(BaseBackend):
     def say_ssml(self, ssml: str) -> bool:
         if hasattr(self.__uspeech, "sapiSaySSMLW") and self.engine_used.upper().startswith("SAPI"):
             return bool(self.__uspeech.sapiSaySSMLW(ssml))
-        return bool(self.say(ssml))
+        # Screen readers (NVDA, JAWS, ...) would read raw tags aloud: speak plain text instead.
+        return bool(self.say(self._ssml_to_plain_text(ssml)))
 
     @property
     def is_busy(self) -> bool:

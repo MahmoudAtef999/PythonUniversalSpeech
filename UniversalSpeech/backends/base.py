@@ -3,6 +3,7 @@ Abstract base backend defining the contract and default behaviors for platform-s
 """
 from abc import ABC, abstractmethod
 import re
+import html
 import warnings
 from typing import Optional, Dict, Any, Union, List, Tuple
 from ..voices import Voice
@@ -90,10 +91,17 @@ class BaseBackend(ABC):
         """Restore automatic engine selection."""
         pass
 
+    @staticmethod
+    def _ssml_to_plain_text(ssml: str) -> str:
+        """Strip markup tags and decode XML entities so engines without SSML support
+        do not read tags such as '<speak>' aloud."""
+        plain = re.sub(r"<[^>]+>", " ", ssml)
+        plain = html.unescape(plain)
+        return re.sub(r"\s+", " ", plain).strip()
+
     def say_ssml(self, ssml: str) -> bool:
         """Speak SSML / markup text (default strips tags and speaks plain text)."""
-        plain = re.sub(r"<[^>]+>", "", ssml)
-        return bool(self.say(plain))
+        return bool(self.say(self._ssml_to_plain_text(ssml)))
 
     @property
     def is_busy(self) -> bool:
