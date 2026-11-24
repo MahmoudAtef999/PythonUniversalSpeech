@@ -16,6 +16,41 @@ from .core import UniversalSpeech
 from . import __version__
 
 
+def _stdin_is_redirected() -> bool:
+    """True when stdin is a pipe or a file (not an interactive terminal and not closed)."""
+    stdin = sys.stdin
+    if stdin is None:
+        return False
+    try:
+        if stdin.isatty():
+            return False
+    except Exception:
+        return False
+    try:
+        fd = stdin.fileno()
+    except Exception:
+        # In-memory streams (e.g. io.StringIO in tests) behave like a redirected file.
+        return True
+    try:
+        import os
+        import stat
+        mode = os.fstat(fd).st_mode
+        # Only pipes/FIFOs and regular files carry a message; character devices such as
+        # NUL or /dev/null (common for services, IDE runners and CI) do not.
+        return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
+    except Exception:
+        return False
+
+
+def _read_stdin() -> str:
+    """Read the whole of stdin. Blocks until the writer closes the pipe, so piped
+    commands that take a while before printing are not lost."""
+    try:
+        return sys.stdin.read().strip() if sys.stdin is not None else ""
+    except Exception:
+        return ""
+
+
 def main(args: Optional[list] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m UniversalSpeech",
@@ -25,7 +60,7 @@ def main(args: Optional[list] = None) -> int:
         "message",
         nargs="?",
         default=None,
-        help="Message to speak and/or display in braille.",
+        help='Message to speak and/or display in braille. Use "-" to read it from standard input.',
     )
     parser.add_argument(
         "-b", "--braille",
@@ -160,54 +195,16 @@ def main(args: Optional[list] = None) -> int:
             print(f"Current Voice:        {voice_str}")
             return 0
 
-        # Read from piped stdin if no message argument was provided
-        if not parsed.message and sys.stdin is not None:
-            try:
-                is_pipe = False
-                try:
-                    is_pipe = not sys.stdin.isatty()
-                except Exception:
-                    is_pipe = False
-
-                if is_pipe:
-                    has_data = False
-                    if sys.platform == "win32":
-                        try:
-                            import msvcrt
-                            # Check if standard input has keyboard or pipe data ready
-                            # PeekNamedPipe checks if there is data on pipe without blocking
-                            import ctypes
-                            from ctypes import wintypes
-                            kernel32 = ctypes.windll.kernel32
-                            STD_INPUT_HANDLE = -10
-                            h_stdin = kernel32.GetStdHandle(STD_INPUT_HANDLE)
-                            avail = wintypes.DWORD(0)
-                            if kernel32.PeekNamedPipe(h_stdin, None, 0, None, ctypes.byref(avail), None):
-                                has_data = avail.value > 0
-                            elif hasattr(sys.stdin, "tell"):
-                                # Fallback for StringIO / custom mocks in tests
-                                has_data = True
-                        except Exception:
-                            has_data = True
-                    else:
-                        try:
-                            import select
-                            readable, _, _ = select.select([sys.stdin], [], [], 0.0)
-                            has_data = bool(readable)
-                        except Exception:
-                            has_data = True
-
-                    if has_data:
-                        piped_msg = sys.stdin.read().strip()
-                        if piped_msg:
-                            parsed.message = piped_msg
-            except Exception:
-                pass
+        # Read the message from standard input when requested explicitly with "-",
+        # or automatically when stdin is redirected from a pipe or a file.
+        if parsed.message == "-" or (not parsed.message and _stdin_is_redirected()):
+            piped_msg = _read_stdin()
+            parsed.message = piped_msg or None
 
         if parsed.message:
             interrupt = not parsed.no_interrupt
             if parsed.braille:
-                speech.speech(parsed.message)
+                speech.speech(parsed.message, interrupt=interrupt)
             else:
                 speech.say(parsed.message, interrupt=interrupt)
 
