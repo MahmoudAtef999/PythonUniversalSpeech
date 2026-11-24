@@ -44,17 +44,29 @@ class _SSIPSocketClient:
             else:
                 return
 
-            # Read greeting
-            resp = self._read_response()
+            # Speech Dispatcher does not send a greeting on connect; the client
+            # speaks first. Set the client name and verify the server accepted it.
+            resp = self._send_command('SET self CLIENT_NAME "user:UniversalSpeech:app"')
             if not resp or not resp.startswith("2"):
                 self.close()
                 return
-
-            # Set client name
-            self._send_command('SET self CLIENT_NAME "user:UniversalSpeech:app"')
             self._connected = True
         except Exception:
             self.close()
+
+    def _drop_connection(self) -> None:
+        """Close the socket and reset state. The caller must already hold self._lock."""
+        if self.sock:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+            self.sock = None
+        self._connected = False
+        self._recv_buffer = ""
+        self._current_rate = None
+        self._current_volume = None
+        self._current_pitch = None
 
     def _send_command(self, cmd: str) -> Optional[str]:
         with self._lock:
@@ -64,43 +76,37 @@ class _SSIPSocketClient:
                 self.sock.sendall((cmd + "\r\n").encode("utf-8"))
                 return self._read_response()
             except Exception:
-                self._connected = False
-                if self.sock:
-                    try:
-                        self.sock.close()
-                    except Exception:
-                        pass
-                    self.sock = None
+                self._drop_connection()
                 return None
 
     def _read_response(self) -> Optional[str]:
         """
         Read complete SSIP response, handling multi-line continuation responses (NNN-...)
         until the final status line (NNN ...) is received.
+
+        This method never acquires self._lock: callers usually already hold it and the
+        lock is not re-entrant. Socket errors and timeouts propagate to the caller,
+        which is responsible for dropping the connection.
         """
         if not self.sock:
             return None
-        try:
-            lines: List[str] = []
-            while True:
-                while "\r\n" not in self._recv_buffer:
-                    chunk = self.sock.recv(1024)
-                    if not chunk:
-                        return lines[-1] if lines else None
-                    self._recv_buffer += chunk.decode("utf-8", errors="replace")
+        lines: List[str] = []
+        while True:
+            while "\r\n" not in self._recv_buffer:
+                chunk = self.sock.recv(1024)
+                if not chunk:
+                    raise ConnectionError("Speech Dispatcher closed the connection")
+                self._recv_buffer += chunk.decode("utf-8", errors="replace")
 
-                line, self._recv_buffer = self._recv_buffer.split("\r\n", 1)
-                line = line.strip()
-                if line:
-                    lines.append(line)
-                    # SSIP protocol: 'NNN ' or exactly 3 digits marks the final line
-                    if len(line) >= 3 and line[:3].isdigit():
-                        if len(line) == 3 or line[3] == " ":
-                            break
-            return lines[-1] if lines else None
-        except Exception:
-            self.close()
-            return None
+            line, self._recv_buffer = self._recv_buffer.split("\r\n", 1)
+            line = line.strip()
+            if line:
+                lines.append(line)
+                # SSIP protocol: 'NNN ' or exactly 3 digits marks the final line
+                if len(line) >= 3 and line[:3].isdigit():
+                    if len(line) == 3 or line[3] == " ":
+                        break
+        return lines[-1] if lines else None
 
     def speak(self, text: str) -> bool:
         with self._lock:
@@ -130,13 +136,7 @@ class _SSIPSocketClient:
                 resp = self._read_response()
                 return bool(resp and resp.startswith("2"))
             except Exception:
-                self._connected = False
-                if self.sock:
-                    try:
-                        self.sock.close()
-                    except Exception:
-                        pass
-                    self.sock = None
+                self._drop_connection()
                 return False
 
     def cancel(self) -> bool:
@@ -151,36 +151,29 @@ class _SSIPSocketClient:
         # SSIP rate is -100 to 100; avoid redundant network roundtrips if unchanged
         val = max(-100, min(100, int(rate)))
         if self._current_rate != val:
-            self._send_command(f"SET self RATE {val}")
-            self._current_rate = val
+            resp = self._send_command(f"SET self RATE {val}")
+            if resp and resp.startswith("2"):
+                self._current_rate = val
 
     def set_volume(self, volume: int) -> None:
         # SSIP volume is -100 to 100; avoid redundant network roundtrips if unchanged
         val = max(-100, min(100, int(volume)))
         if self._current_volume != val:
-            self._send_command(f"SET self VOLUME {val}")
-            self._current_volume = val
+            resp = self._send_command(f"SET self VOLUME {val}")
+            if resp and resp.startswith("2"):
+                self._current_volume = val
 
     def set_pitch(self, pitch: int) -> None:
         # SSIP pitch is -100 to 100; avoid redundant network roundtrips if unchanged
         val = max(-100, min(100, int(pitch)))
         if self._current_pitch != val:
-            self._send_command(f"SET self PITCH {val}")
-            self._current_pitch = val
+            resp = self._send_command(f"SET self PITCH {val}")
+            if resp and resp.startswith("2"):
+                self._current_pitch = val
 
     def close(self) -> None:
         with self._lock:
-            if self.sock:
-                try:
-                    self.sock.close()
-                except Exception:
-                    pass
-                self.sock = None
-            self._connected = False
-            self._recv_buffer = ""
-            self._current_rate = None
-            self._current_volume = None
-            self._current_pitch = None
+            self._drop_connection()
 
     @property
     def is_connected(self) -> bool:
@@ -204,8 +197,9 @@ class LinuxBackend(BaseBackend):
         self._volume = 100
         self._pitch = 50
         self._process_lock = threading.Lock()
-        self._volume = 100
-        self._pitch = 50
+        # Output path that handled the most recent say(): "ssip", "spd-cli",
+        # "espeak-lib", "espeak-cli" or None. Drives is_busy / wait support.
+        self._last_output: Optional[str] = None
 
         # Subprocess tracking for audio/cli
         self._last_process: Optional[subprocess.Popen] = None
@@ -387,6 +381,7 @@ class LinuxBackend(BaseBackend):
                 self._ssip_client.set_volume(ssip_vol)
                 self._ssip_client.set_pitch(ssip_pitch)
                 if self._ssip_client.speak(msg):
+                    self._last_output = "ssip"
                     return 1
 
             if shutil.which("spd-say"):
@@ -400,6 +395,7 @@ class LinuxBackend(BaseBackend):
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
+                    self._last_output = "spd-cli"
                     return 1
                 except Exception:
                     pass
@@ -420,6 +416,7 @@ class LinuxBackend(BaseBackend):
                         msg_bytes = msg.encode("utf-8")
                         # POS_CHARACTER = 1, SEARCH_NORMAL = 0
                         self._espeak_lib.espeak_Synth(msg_bytes, len(msg_bytes) + 1, 0, 1, 0, 0x1000, None, None)
+                    self._last_output = "espeak-lib"
                     return 1
                 except Exception:
                     pass
@@ -430,10 +427,11 @@ class LinuxBackend(BaseBackend):
                     wpm = int(80 + (self._rate / 100.0) * 300)
                     with self._process_lock:
                         self._last_process = subprocess.Popen(
-                            [espeak_bin, "-s", str(wpm), "-a", str(self._volume), "-p", str(self._pitch), msg],
+                            [espeak_bin, "-s", str(wpm), "-a", str(self._volume), "-p", str(self._pitch), "--", msg],
                             stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL,
                         )
+                    self._last_output = "espeak-cli"
                     return 1
                 except Exception:
                     pass
@@ -487,56 +485,68 @@ class LinuxBackend(BaseBackend):
             self._ssip_client.close()
             self._ssip_client = None
 
+    def _espeak_lib_can_poll(self) -> bool:
+        return bool(self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"))
+
     @property
     def is_busy(self) -> bool:
-        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
+        output = self._last_output
+        if output == "espeak-lib" and self._espeak_lib_can_poll():
             try:
-                return bool(self._espeak_lib.espeak_IsPlaying())
+                return bool(self._espeak_lib.espeak_IsPlaying())  # type: ignore[union-attr]
             except Exception:
-                pass
-        with self._process_lock:
-            if self._last_process:
-                return self._last_process.poll() is None
+                return False
+        if output == "espeak-cli":
+            with self._process_lock:
+                proc = self._last_process
+            return bool(proc and proc.poll() is None)
         return False
 
     @property
     def busy_supported(self) -> bool:
-        return bool(self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"))
+        """Busy state is only observable for eSpeak (library polling or the CLI process).
+
+        Speech Dispatcher (SSIP or spd-say) queues speech asynchronously and does not
+        report completion without event notifications, so it is reported as unsupported.
+        """
+        output = self._last_output
+        if output == "espeak-lib":
+            return self._espeak_lib_can_poll()
+        if output == "espeak-cli":
+            return True
+        if output is None and self._active_engine_name == "espeak":
+            return self._espeak_lib_can_poll() or bool(shutil.which("espeak-ng") or shutil.which("espeak"))
+        return False
 
     @property
     def wait_supported(self) -> bool:
-        if self._active_engine_name == "speech-dispatcher" and self._ssip_client and self._ssip_client.is_connected:
-            return False
-        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
-            return True
-        return False
+        return self.busy_supported
 
     def wait(self, timeout_ms: Optional[int] = None) -> bool:
-        if not self.wait_supported and not self.busy_supported:
+        """Wait until speech finishes. Returns False on timeout or when waiting is unsupported."""
+        if not self.wait_supported:
             return False
         start_time = time.time()
         timeout_sec = timeout_ms / 1000.0 if timeout_ms is not None else None
 
-        with self._process_lock:
-            proc = self._last_process
-
-        if proc:
+        if self._last_output == "espeak-cli":
+            with self._process_lock:
+                proc = self._last_process
+            if proc is None:
+                return True
             try:
                 proc.wait(timeout=timeout_sec)
-                with self._process_lock:
-                    if self._last_process is proc:
-                        self._last_process = None
-                return True
-            except Exception:
+            except subprocess.TimeoutExpired:
                 return False
+            with self._process_lock:
+                if self._last_process is proc:
+                    self._last_process = None
+            return True
 
-        if self._espeak_lib and hasattr(self._espeak_lib, "espeak_IsPlaying"):
-            while self.is_busy:
-                if timeout_sec is not None and (time.time() - start_time) >= timeout_sec:
-                    return False
-                time.sleep(0.02)
-            return not self.is_busy
-
+        while self.is_busy:
+            if timeout_sec is not None and (time.time() - start_time) >= timeout_sec:
+                return False
+            time.sleep(0.02)
         return True
 
     # Parameters

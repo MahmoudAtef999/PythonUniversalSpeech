@@ -15,9 +15,9 @@ class TestLinuxBackend(unittest.TestCase):
     def test_ssip_socket_client_workflow(self):
         """Verify _SSIPSocketClient speaks and controls parameters over a simulated socket."""
         mock_sock = MagicMock()
+        # Speech Dispatcher sends no greeting: the first reply is to SET CLIENT_NAME.
         mock_sock.recv.side_effect = [
-            b"200 OK SPEECH DISPATCHER READY\r\n",
-            b"200 OK CLIENT NAME SET\r\n",
+            b"208 OK CLIENT NAME SET\r\n",
             b"230 OK RECEIVING DATA\r\n",
             b"225-1\r\n225 OK MESSAGE QUEUED\r\n",
             b"200 OK CANCELLED\r\n",
