@@ -17,6 +17,17 @@ from .constants import (
 )
 
 
+def _require_text(msg: Any, name: str = "msg") -> None:
+    """Reject non-string input before it reaches native code (e.g. None -> NULL pointer)."""
+    if not isinstance(msg, str):
+        raise TypeError(f"{name} must be a str, not {type(msg).__name__}")
+
+
+def _require_text_or_bytes(msg: Any, name: str = "msg") -> None:
+    if not isinstance(msg, (str, bytes)):
+        raise TypeError(f"{name} must be a str or bytes, not {type(msg).__name__}")
+
+
 class UniversalSpeech(BaseBackend):
     """
     UniversalSpeech facade providing a unified, cross-platform interface for speech
@@ -93,20 +104,25 @@ class UniversalSpeech(BaseBackend):
         return getattr(backend, name)
 
     def say(self, msg: str, interrupt: bool = True) -> int:
+        _require_text(msg)
         return self._backend.say(msg, interrupt=interrupt)
 
     def say_a(self, msg: Union[str, bytes], interrupt: bool = True) -> int:
+        _require_text_or_bytes(msg)
         return self._backend.say_a(msg, interrupt=interrupt)
 
     sayA = say_a
 
     def braille(self, msg: str) -> int:
+        _require_text(msg)
         return self._backend.braille(msg)
 
     def speech(self, msg: str, interrupt: bool = True) -> None:
+        _require_text(msg)
         self._backend.speech(msg, interrupt=interrupt)
 
     def speech_a(self, msg: Union[str, bytes], interrupt: bool = True) -> None:
+        _require_text_or_bytes(msg)
         self._backend.speech_a(msg, interrupt=interrupt)
 
     def stop(self) -> int:
@@ -141,6 +157,7 @@ class UniversalSpeech(BaseBackend):
         self._backend.reset_engine()
 
     def say_ssml(self, ssml: str) -> bool:
+        _require_text(ssml, "ssml")
         return self._backend.say_ssml(ssml)
 
     @property
@@ -339,7 +356,6 @@ class UniversalSpeech(BaseBackend):
 
     @property
     def inflection_range(self) -> Tuple[int, int]:
-        return (self.inflection_min, self.inflection_max)
         return (self.inflection_min, self.inflection_max)
 
     # Screen Readers & Engines

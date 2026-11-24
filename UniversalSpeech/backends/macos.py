@@ -178,7 +178,9 @@ class MacOSBackend(BaseBackend):
 
                 # Apply volume via embedded speech synthesis control [[volm X]] (0.0 to 1.0)
                 vol_factor = max(0.0, min(1.0, round(self._volume / 100.0, 2)))
-                cmd.append(f"[[volm {vol_factor}]] {msg}")
+                # Neutralise "[[" in user text so it cannot inject embedded synthesizer commands.
+                safe_msg = msg.replace("[[", "[ [")
+                cmd.append(f"[[volm {vol_factor}]] {safe_msg}")
 
                 with self._process_lock:
                     self._last_process = subprocess.Popen(
